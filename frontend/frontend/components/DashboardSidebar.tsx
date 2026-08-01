@@ -20,7 +20,6 @@ const navItems = [
 
 const bottomItems = [
   { label: 'Profile',  href: '/profile', icon: User },
-  { label: 'Settings', href: '/profile', icon: Settings },
 ];
 
 export default function DashboardSidebar() {

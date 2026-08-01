@@ -8,6 +8,8 @@ import TopMetricsRow from '../components/TopMetricsRow';
 import AssetGrid, { mockAssets } from '../components/AssetGrid';
 import AssetInspector, { AssetItem } from '../components/AssetInspector';
 import OwnershipLedgerView from '../components/OwnershipLedgerView';
+import AlertsView from '../components/AlertsView';
+import AnalyticsView from '../components/AnalyticsView';
 import UploadModal from '../components/UploadModal';
 import { Zap, X } from 'lucide-react';
 
@@ -69,6 +71,10 @@ export default function DashboardPage() {
           
           {activeTab === 'ledger' ? (
             <OwnershipLedgerView />
+          ) : activeTab === 'alerts' ? (
+            <AlertsView />
+          ) : activeTab === 'analytics' ? (
+            <AnalyticsView />
           ) : (
             <>
               {/* Center Main Asset Grid Area */}

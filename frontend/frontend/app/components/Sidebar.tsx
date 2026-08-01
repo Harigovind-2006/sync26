@@ -27,7 +27,6 @@ export default function Sidebar({ activeTab, setActiveTab }: SidebarProps) {
     { id: 'ledger', label: 'Ownership Ledger', icon: BookOpenCheck },
     { id: 'alerts', label: 'Detection Alerts', icon: BellRing, badge: '2' },
     { id: 'analytics', label: 'Analytics', icon: BarChart3 },
-    { id: 'settings', label: 'Settings', icon: Settings },
   ];
 
   const handleSignOut = () => {
