@@ -1,26 +1,95 @@
 @import "tailwindcss";
 
+@theme {
+  --color-brand-dark: #08090a;
+  --color-brand-panel: #111216;
+  --color-brand-neon: #c5ff2e;
+  --color-brand-neon-hover: #b2eb25;
+  --color-brand-gray: #a3a3a3;
+  --color-brand-border: rgba(255, 255, 255, 0.08);
+}
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #08090a;
+  --foreground: #f4f4f5;
+  --card-bg: rgba(17, 18, 22, 0.6);
+  --card-border: rgba(255, 255, 255, 0.08);
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+html, body {
+  background-color: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans), system-ui, sans-serif;
+  overflow-x: hidden;
+  scroll-behavior: smooth;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+::-webkit-scrollbar-track {
+  background: #08090a;
+}
+::-webkit-scrollbar-thumb {
+  background: #1f2025;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #2e3039;
+}
+
+/* Glassmorphism utility */
+.glass-panel {
+  background: rgba(17, 18, 22, 0.55);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.glass-panel-heavy {
+  background: rgba(10, 11, 14, 0.9);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Neon glow details */
+.neon-text-glow {
+  text-shadow: 0 0 10px rgba(197, 255, 46, 0.4);
+}
+
+.neon-border-glow:hover {
+  box-shadow: 0 0 15px rgba(197, 255, 46, 0.2);
+  border-color: #c5ff2e;
+}
+
+/* Shutter slice animation effect */
+.shutter-slice {
+  transition: transform 0.6s cubic-bezier(0.25, 1, 0.5, 1), filter 0.6s ease;
+}
+.shutter-container:hover .shutter-slice:nth-child(odd) {
+  transform: translateY(-8px);
+}
+.shutter-container:hover .shutter-slice:nth-child(even) {
+  transform: translateY(8px);
+}
+
+/* Animated neon scribble line effect background */
+@keyframes draw {
+  to {
+    stroke-dashoffset: 0;
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+.scribble-animation {
+  stroke-dasharray: 1000;
+  stroke-dashoffset: 1000;
+  animation: draw 3s ease-in-out infinite alternate;
 }
