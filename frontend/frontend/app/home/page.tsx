@@ -1,465 +1,661 @@
 'use client';
 
-import React, { useEffect } from 'react';
+import React, { useState, useMemo } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { motion, AnimatePresence } from 'framer-motion';
+import DashboardLayout from '../../components/DashboardLayout';
 import { useAuth } from '../../context/AuthContext';
-import { motion } from 'framer-motion';
+import {
+  Search, Filter, ArrowUpDown, Upload, Eye, ShieldCheck,
+  Download, Info, CheckCircle2, LayoutGrid, List, X, Plus,
+  Fingerprint, Shield, Lock, Sparkles, Bell, ArrowRight
+} from 'lucide-react';
 
-const securityFeatures = [
+const ease: [number, number, number, number] = [0.22, 1, 0.36, 1];
+
+interface ProtectedImageCard {
+  id: string;
+  title: string;
+  description: string;
+  imageUrl: string;
+  status: 'Protected' | 'Verified' | 'Encrypted' | 'Watermarked' | 'AI Scanned' | 'Owner Verified';
+  date: string;
+  size: string;
+  watermarkId: string;
+  resolution: string;
+  owner: string;
+}
+
+const PROTECTED_GALLERY: ProtectedImageCard[] = [
   {
-    icon: (
-      <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M7.864 4.243A7.5 7.5 0 0119.5 10.5c0 2.92-.556 5.709-1.568 8.268M5.742 6.364A7.465 7.465 0 004.5 10.5a7.464 7.464 0 01-1.15 3.993m1.989 3.559A11.209 11.209 0 008.25 10.5a3.75 3.75 0 117.5 0c0 .527-.021 1.049-.064 1.565M12 10.5a14.94 14.94 0 01-3.6 9.75m6.633-4.596a18.666 18.666 0 01-2.485 5.33" />
-      </svg>
-    ),
-    title: 'Invisible AI Watermarking',
-    desc: 'Embed unique invisible ownership signatures into every uploaded image without affecting visual quality.',
+    id: 'gallery-1',
+    title: 'Wedding Photography',
+    description: 'High-resolution bridal portrait gallery protected with invisible DCT color-channel watermarks.',
+    imageUrl: 'https://images.unsplash.com/photo-1519741497674-611481863552?auto=format&fit=crop&w=1000&q=80',
+    status: 'Protected',
+    date: '2 hours ago',
+    size: '14.2 MB',
+    watermarkId: 'LR-WM-99F2A1',
+    resolution: '6000 × 4000',
+    owner: 'Lakxam Rekha Studio',
   },
   {
-    icon: (
-      <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" />
-      </svg>
-    ),
-    title: 'AES-256 Encryption',
-    desc: 'Protect uploaded files and metadata using military-grade AES-256 encryption standards.',
+    id: 'gallery-2',
+    title: 'Company Logo',
+    description: 'Official vector brand identity asset embedded with cryptographic ownership verification key.',
+    imageUrl: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=1000&q=80',
+    status: 'Verified',
+    date: '5 hours ago',
+    size: '2.8 MB',
+    watermarkId: 'LR-WM-88B3C4',
+    resolution: '3840 × 2160',
+    owner: 'Enterprise Brand Inc.',
   },
   {
-    icon: (
-      <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" />
-      </svg>
-    ),
-    title: 'End-to-End Secure Upload',
-    desc: 'Images remain encrypted during upload and storage using HTTPS and secure transmission protocols.',
+    id: 'gallery-3',
+    title: 'Landscape Collection',
+    description: 'Fine art panoramic mountain landscape with invisible digital rights management signature.',
+    imageUrl: 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=1000&q=80',
+    status: 'Watermarked',
+    date: '1 day ago',
+    size: '18.5 MB',
+    watermarkId: 'LR-WM-77A91D',
+    owner: 'Nature Focus Studio',
+    resolution: '7680 × 4320',
   },
   {
-    icon: (
-      <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 5.25a3 3 0 013 3m3 0a6 6 0 01-7.029 5.912c-.563-.097-1.159.026-1.563.43L10.5 17.25H8.25v2.25H6v2.25H2.25v-2.818c0-.597.237-1.17.659-1.591l6.499-6.499c.404-.404.527-1 .43-1.563A6 6 0 1121.75 8.25z" />
-      </svg>
-    ),
-    title: 'Ownership Verification',
-    desc: 'Instantly verify the original owner using secure watermark decoding and cryptographic ownership records.',
+    id: 'gallery-4',
+    title: 'Artwork Portfolio',
+    description: '3D digital sculpture concept render protected with AES-256 encrypted metadata and AI scan.',
+    imageUrl: 'https://images.unsplash.com/photo-1634017839464-5c339ebe3cb4?auto=format&fit=crop&w=1000&q=80',
+    status: 'Encrypted',
+    date: '2 days ago',
+    size: '9.4 MB',
+    watermarkId: 'LR-WM-55E22P',
+    resolution: '4096 × 2304',
+    owner: 'Vance Digital Art',
   },
   {
-    icon: (
-      <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
-      </svg>
-    ),
-    title: 'Tamper Detection',
-    desc: 'AI detects unauthorized edits, modifications, removals, or attempts to manipulate protected images.',
+    id: 'gallery-5',
+    title: 'Product Design',
+    description: 'Industrial consumer hardware prototype CAD render monitored by real-time tamper-detection AI.',
+    imageUrl: 'https://images.unsplash.com/photo-1581291518633-83b4ebd1d83e?auto=format&fit=crop&w=1000&q=80',
+    status: 'AI Scanned',
+    date: '3 days ago',
+    size: '11.1 MB',
+    watermarkId: 'LR-WM-44K99Z',
+    resolution: '3440 × 1440',
+    owner: 'Hardware Labs Co.',
   },
   {
-    icon: (
-      <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 12h16.5m-16.5 3.75h16.5M3.75 19.5h16.5M5.625 4.5h12.75a1.875 1.875 0 010 3.75H5.625a1.875 1.875 0 010-3.75z" />
-      </svg>
-    ),
-    title: 'Modification Tracking',
-    desc: 'Maintain a secure history of image changes for authenticity assurance and forensic analysis.',
-  },
-  {
-    icon: (
-      <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M17.982 18.725A7.488 7.488 0 0012 15.75a7.488 7.488 0 00-5.982 2.975m11.963 0a9 9 0 10-11.963 0m11.963 0A8.966 8.966 0 0112 21a8.966 8.966 0 01-5.982-2.275M15 9.75a3 3 0 11-6 0 3 3 0 016 0z" />
-      </svg>
-    ),
-    title: 'Secure Authentication',
-    desc: 'JWT tokens, bcrypt password hashing, session management, and optional multi-factor authentication.',
-  },
-  {
-    icon: (
-      <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M18 18.72a9.094 9.094 0 003.741-.479 3 3 0 00-4.682-2.72m.94 3.198l.001.031c0 .225-.012.447-.037.666A11.944 11.944 0 0112 21c-2.17 0-4.207-.576-5.963-1.584A6.062 6.062 0 016 18.719m12 0a5.971 5.971 0 00-.941-3.197m0 0A5.995 5.995 0 0012 12.75a5.995 5.995 0 00-5.058 2.772m0 0a3 3 0 00-4.681 2.72 8.986 8.986 0 003.74.477m.94-3.197a5.971 5.971 0 00-.94 3.197M15 6.75a3 3 0 11-6 0 3 3 0 016 0zm6 3a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0zm-13.5 0a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0z" />
-      </svg>
-    ),
-    title: 'Role-Based Access Control',
-    desc: 'Different permission levels for creators, organizations, administrators, and verification officers.',
-  },
-  {
-    icon: (
-      <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M3.98 8.223A10.477 10.477 0 001.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.45 10.45 0 0112 4.5c4.756 0 8.773 3.162 10.065 7.498a10.523 10.523 0 01-4.293 5.774M6.228 6.228L3 3m3.228 3.228l3.65 3.65m7.894 7.894L21 21m-3.228-3.228l-3.65-3.65m0 0a3 3 0 10-4.243-4.243m4.242 4.242L9.88 9.88" />
-      </svg>
-    ),
-    title: 'Privacy Protection',
-    desc: 'No public exposure of uploaded files. User data and media remain private and securely stored.',
-  },
-  {
-    icon: (
-      <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 15a4.5 4.5 0 004.5 4.5H18a3.75 3.75 0 001.332-7.257 3 3 0 00-3.758-3.848 5.25 5.25 0 00-10.233 2.33A4.502 4.502 0 002.25 15z" />
-      </svg>
-    ),
-    title: 'Cloud Backup',
-    desc: 'Encrypted backups ensure digital assets remain protected against accidental loss or corruption.',
-  },
-  {
-    icon: (
-      <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 002.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 00-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 00.75-.75 2.25 2.25 0 00-.1-.664m-5.8 0A2.251 2.251 0 0113.5 2.25H15c1.012 0 1.867.668 2.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m0 0H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V9.375c0-.621-.504-1.125-1.125-1.125H8.25zM6.75 12h.008v.008H6.75V12zm0 3h.008v.008H6.75V15zm0 3h.008v.008H6.75V18z" />
-      </svg>
-    ),
-    title: 'Audit Logs',
-    desc: 'Complete logs of uploads, ownership verification requests, and all security events are maintained.',
-  },
-  {
-    icon: (
-      <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M8.625 12a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H8.25m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H12m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0h-.375M21 12c0 4.556-4.03 8.25-9 8.25a9.764 9.764 0 01-2.555-.337A5.972 5.972 0 015.41 20.97a5.969 5.969 0 01-.474-.065 4.48 4.48 0 00.978-2.025c.09-.457-.133-.901-.467-1.226C3.93 16.178 3 14.189 3 12c0-4.556 4.03-8.25 9-8.25s9 3.694 9 8.25z" />
-      </svg>
-    ),
-    title: 'Future AI Monitoring',
-    desc: 'Upcoming versions will monitor the web for protected images and alert owners of unauthorized copies or modifications.',
+    id: 'gallery-6',
+    title: 'Research Diagram',
+    description: 'Proprietary AI neural architecture schematic protected against web scraping and unauthorized training.',
+    imageUrl: 'https://images.unsplash.com/photo-1620712943543-bcc4688e7485?auto=format&fit=crop&w=1000&q=80',
+    status: 'Owner Verified',
+    date: '4 days ago',
+    size: '4.6 MB',
+    watermarkId: 'LR-WM-33X77M',
+    resolution: '2560 × 1440',
+    owner: 'Lakxam AI Institute',
   },
 ];
 
-const fadeUp = {
-  hidden: { opacity: 0, y: 32 },
-  visible: (i: number) => ({
-    opacity: 1,
-    y: 0,
-    transition: {
-      duration: 0.55,
-      delay: i * 0.07,
-      ease: [0.22, 1, 0.36, 1] as [number, number, number, number],
-    },
-  }),
-};
+const TECH_TAGS = [
+  'Invisible Watermark',
+  'AI Protection',
+  'Cryptography',
+  'Ownership Verification',
+  'Tamper Detection',
+  'Secure Storage',
+  'Image Authentication',
+  'Digital Rights',
+  'Metadata Protection',
+];
 
-export default function HomePage() {
-  const router = useRouter();
-  const { user, isAuthenticated, logout } = useAuth();
+export default function HomeDashboardPage() {
+  const { user } = useAuth();
 
-  useEffect(() => {
-    if (!isAuthenticated) router.push('/login');
-  }, [isAuthenticated, router]);
+  // State
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedFilter, setSelectedFilter] = useState<string>('All');
+  const [selectedSort, setSelectedSort] = useState<'newest' | 'oldest' | 'title' | 'size'>('newest');
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [selectedImage, setSelectedImage] = useState<ProtectedImageCard | null>(null);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
 
-  if (!isAuthenticated || !user) {
+  // Filter & Sort
+  const filteredGallery = useMemo(() => {
+    return PROTECTED_GALLERY
+      .filter((img) => {
+        const matchesSearch =
+          img.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          img.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          img.watermarkId.toLowerCase().includes(searchQuery.toLowerCase());
+        const matchesFilter = selectedFilter === 'All' || img.status === selectedFilter;
+        return matchesSearch && matchesFilter;
+      })
+      .sort((a, b) => {
+        if (selectedSort === 'title') return a.title.localeCompare(b.title);
+        if (selectedSort === 'size') return parseFloat(b.size) - parseFloat(a.size);
+        if (selectedSort === 'oldest') return a.id.localeCompare(b.id);
+        return b.id.localeCompare(a.id);
+      });
+  }, [searchQuery, selectedFilter, selectedSort]);
+
+  const showToast = (msg: string) => {
+    setToastMessage(msg);
+    setTimeout(() => setToastMessage(null), 3000);
+  };
+
+  const renderStatusBadge = (status: ProtectedImageCard['status']) => {
+    const styles = {
+      Protected: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30',
+      Verified: 'bg-cyan-500/15 text-cyan-400 border-cyan-500/30',
+      Watermarked: 'bg-[#9b51e0]/15 text-[#9b51e0] border-[#9b51e0]/30',
+      Encrypted: 'bg-purple-500/15 text-purple-400 border-purple-500/30',
+      'AI Scanned': 'bg-amber-500/15 text-amber-400 border-amber-500/30',
+      'Owner Verified': 'bg-blue-500/15 text-blue-400 border-blue-500/30',
+    };
     return (
-      <div className="min-h-screen bg-[#07070A] flex items-center justify-center">
-        <div className="w-6 h-6 border-2 border-[#9b51e0] border-t-transparent rounded-full animate-spin" />
-      </div>
+      <span className={`px-3 py-1 rounded-full text-[11px] font-bold border backdrop-blur-md shadow-md ${styles[status]}`}>
+        ● {status}
+      </span>
     );
-  }
+  };
 
   return (
-    <div className="min-h-screen bg-[#07070A] text-white font-sans flex flex-col overflow-x-hidden">
-
-      {/* ─── DECORATIVE GLOWS ─── */}
-      <div className="pointer-events-none fixed inset-0 overflow-hidden z-0">
-        <div className="absolute top-[-15%] left-[-10%] w-[600px] h-[600px] bg-[#9b51e0]/8 rounded-full blur-[160px]" />
-        <div className="absolute top-[40%] right-[-10%] w-[500px] h-[500px] bg-[#00b0ff]/6 rounded-full blur-[140px]" />
-        <div className="absolute bottom-[-10%] left-[30%] w-[400px] h-[400px] bg-[#9b51e0]/5 rounded-full blur-[120px]" />
+    <DashboardLayout>
+      {/* Top Bar */}
+      <div className="sticky top-0 z-30 h-16 border-b border-white/[0.06] bg-[#07070A]/85 backdrop-blur-xl flex items-center justify-between px-8">
+        <div className="flex items-center gap-3">
+          <div className="w-2.5 h-2.5 rounded-full bg-[#9b51e0] animate-pulse" />
+          <span className="text-sm font-semibold text-white tracking-wide">Lakxam Rekha Workspace</span>
+        </div>
+        <div className="flex items-center gap-4">
+          <button className="w-8 h-8 rounded-lg bg-white/[0.03] border border-white/[0.06] flex items-center justify-center text-zinc-600 hover:text-white transition-colors">
+            <Bell className="w-3.5 h-3.5" />
+          </button>
+          <div className="flex items-center gap-2.5">
+            <div className="w-7 h-7 rounded-full bg-gradient-to-br from-[#9b51e0] to-[#00b0ff] flex items-center justify-center text-black font-bold text-xs shadow-md">
+              {user?.name?.[0]?.toUpperCase() ?? 'U'}
+            </div>
+            <span className="text-xs text-zinc-300 font-medium hidden sm:block">{user?.name ?? 'Creator'}</span>
+          </div>
+        </div>
       </div>
 
-      {/* ─── NAV ─── */}
-      <nav className="relative z-30 w-full h-20 border-b border-white/[0.06] bg-[#07070A]/70 backdrop-blur-xl sticky top-0 flex items-center px-10 justify-between">
-        <Link href="/" className="flex items-center gap-3 group">
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#9b51e0] to-[#00b0ff] flex items-center justify-center text-black font-black text-base shadow-lg shadow-[#9b51e0]/20">
-            L
-          </div>
-          <span className="text-lg font-bold tracking-tight text-white group-hover:text-[#9b51e0] transition-colors">
-            Lakxam Rekha
-          </span>
-        </Link>
-
-        <div className="flex items-center gap-8">
-          {[
-            { label: 'Dashboard', href: '/home', active: true },
-            { label: 'Upload', href: '/upload' },
-            { label: 'Profile', href: '/profile' },
-          ].map((item) => (
-            <Link
-              key={item.label}
-              href={item.href}
-              className={`text-sm font-semibold tracking-wide transition-colors ${
-                item.active ? 'text-[#9b51e0]' : 'text-zinc-400 hover:text-white'
-              }`}
-            >
-              {item.label}
-            </Link>
-          ))}
-          <button
-            onClick={logout}
-            className="text-sm font-semibold text-zinc-500 hover:text-red-400 tracking-wide transition-colors"
+      {/* Toast Notification */}
+      <AnimatePresence>
+        {toastMessage && (
+          <motion.div
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            className="fixed top-20 right-10 z-50 px-4 py-3 rounded-xl bg-[#0d0d14] border border-[#9b51e0]/40 text-white text-xs font-semibold shadow-2xl flex items-center gap-3"
           >
-            Logout
-          </button>
-        </div>
-      </nav>
-
-      {/* ─── MAIN CONTENT ─── */}
-      <main className="relative z-10 flex-1 w-full max-w-[1400px] mx-auto px-15 py-20" style={{ paddingLeft: '60px', paddingRight: '60px', paddingTop: '80px', paddingBottom: '60px' }}>
-
-        {/* ── HERO / WELCOME SECTION ── */}
-        <motion.section
-          className="text-center mb-24"
-          initial="hidden"
-          animate="visible"
-          variants={fadeUp}
-          custom={0}
-        >
-          <motion.div variants={fadeUp} custom={0} className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-[#9b51e0]/25 bg-[#9b51e0]/8 text-[#9b51e0] text-sm font-semibold tracking-wide mb-8">
-            <span className="w-1.5 h-1.5 rounded-full bg-[#9b51e0] animate-pulse" />
-            AI-Powered Image Protection Platform
+            <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+            <span>{toastMessage}</span>
           </motion.div>
+        )}
+      </AnimatePresence>
 
-          <motion.h1
-            variants={fadeUp}
-            custom={1}
-            className="text-5xl sm:text-6xl lg:text-7xl font-extrabold tracking-tight leading-[1.1] mb-6"
-          >
-            Welcome to{' '}
-            <span className="bg-clip-text text-transparent bg-gradient-to-r from-[#9b51e0] via-[#c084fc] to-[#00b0ff]">
-              Lakxam Rekha
-            </span>
-          </motion.h1>
+      {/* ══════════════════════════════════════════════════════
+          2. LARGE HERO BANNER (70-80% Viewport Height)
+      ══════════════════════════════════════════════════════ */}
+      <div className="pt-8 pb-4">
+        <div className="w-[96%] max-w-[1440px] min-h-[75vh] mx-auto rounded-[40px] border border-[#9b51e0]/25 bg-gradient-to-br from-[#9b51e0]/12 via-[#090912]/95 to-[#00b0ff]/10 backdrop-blur-2xl p-8 sm:p-14 lg:p-16 shadow-2xl shadow-black/90 relative overflow-hidden flex flex-col justify-center">
 
-          <motion.p
-            variants={fadeUp}
-            custom={2}
-            className="text-2xl sm:text-3xl font-semibold text-zinc-300 mb-6"
-          >
-            Protecting Every Pixel.{' '}
-            <span className="text-[#00b0ff]">Preserving Every Creator.</span>
-          </motion.p>
+          {/* Animated Background Rays & Floating Orbs */}
+          <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-gradient-to-br from-[#9b51e0]/15 to-[#00b0ff]/10 rounded-full blur-[140px] pointer-events-none" />
+          <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-[#9b51e0]/10 rounded-full blur-[120px] pointer-events-none" />
 
-          <motion.p
-            variants={fadeUp}
-            custom={3}
-            className="text-lg sm:text-xl text-zinc-500 max-w-3xl mx-auto leading-relaxed"
-          >
-            Lakxam Rekha is an AI-powered platform that protects digital ownership through invisible watermarking, ownership verification, intelligent security, and advanced image authentication.
-          </motion.p>
-        </motion.section>
+          {/* Grid pattern overlay */}
+          <div className="absolute inset-0 bg-[linear-gradient(to_right,rgba(255,255,255,0.02)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.02)_1px,transparent_1px)] bg-[size:4rem_4rem] pointer-events-none opacity-40" />
 
-        {/* ── ABOUT SECTION ── */}
-        <motion.section
-          className="mb-24"
-          initial="hidden"
-          whileInView="visible"
-          viewport={{ once: true, margin: '-80px' }}
-          variants={fadeUp}
-          custom={0}
-        >
-          <div className="relative rounded-[28px] border border-white/[0.07] bg-white/[0.025] backdrop-blur-xl p-12 lg:p-16 overflow-hidden shadow-2xl shadow-black/40">
-            {/* card inner glow */}
-            <div className="absolute top-0 left-0 w-[350px] h-[200px] bg-[#9b51e0]/6 blur-[80px] rounded-full pointer-events-none" />
+          {/* HERO TWO-COLUMN LAYOUT: Left (45%), Right (55%) */}
+          <div className="relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16 items-center">
 
-            <div className="relative z-10">
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-[#9b51e0]/20 bg-[#9b51e0]/8 text-[#9b51e0] text-xs font-bold uppercase tracking-widest mb-6">
-                About
+            {/* ── LEFT SIDE (45% -> lg:col-span-5) ── */}
+            <div className="lg:col-span-5 space-y-6">
+
+              {/* Small Label */}
+              <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-[#9b51e0]/30 bg-[#9b51e0]/10 text-[#9b51e0] text-xs font-bold uppercase tracking-widest">
+                <Sparkles className="w-3.5 h-3.5" /> AI-Powered Digital Ownership Platform
               </div>
-              <h2 className="text-4xl font-extrabold tracking-tight text-white mb-10">
-                About Lakxam Rekha
-              </h2>
 
-              <div className="space-y-6 text-[19px] leading-[1.8] text-zinc-400 max-w-4xl">
-                <p>
-                  Lakxam Rekha is an AI-powered digital ownership platform designed to help creators, photographers, artists, designers, and organizations protect their visual content from unauthorized use. The platform combines advanced image processing with invisible digital watermarking to establish verifiable ownership while preserving the original appearance of every image.
-                </p>
-                <p>
-                  When a user uploads an image, Lakxam Rekha securely generates a unique ownership signature and embeds it as an invisible watermark. This hidden identifier allows the image owner to verify authenticity, prove ownership, and maintain a permanent digital record without affecting image quality.
-                </p>
-                <p>
-                  Beyond watermarking, Lakxam Rekha aims to build a trusted ecosystem for digital content protection. Future capabilities include AI-based tamper detection, ownership verification, modification tracking, and automated alerts when protected images are altered or shared online. These features are designed to help creators safeguard their intellectual property in an increasingly digital world.
-                </p>
-                <p>
-                  The platform prioritizes privacy and security by using encrypted storage, secure authentication, and modern cybersecurity practices to protect both user accounts and uploaded content.
+              {/* Large Heading & Tagline */}
+              <div>
+                <h1 className="text-4xl sm:text-5xl lg:text-6xl font-black text-white tracking-tight leading-[1.05] mb-3">
+                  Lakxam Rekha
+                </h1>
+                <p className="text-lg sm:text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-[#9b51e0] via-[#c084fc] to-[#00b0ff]">
+                  Protect Every Pixel. Preserve Every Creator.
                 </p>
               </div>
 
-              {/* Mission & Vision grid */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-12">
-                <div className="rounded-[20px] border border-[#9b51e0]/15 bg-[#9b51e0]/5 p-8">
-                  <div className="flex items-center gap-3 mb-4">
-                    <div className="w-9 h-9 rounded-xl bg-[#9b51e0]/15 flex items-center justify-center text-[#9b51e0]">
-                      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z" />
-                      </svg>
-                    </div>
-                    <h3 className="text-xl font-bold text-white">Mission</h3>
-                  </div>
-                  <p className="text-[17px] text-zinc-400 leading-relaxed">
-                    To empower creators with intelligent technology that protects digital ownership, preserves creative rights, and builds trust in the authenticity of digital media.
-                  </p>
-                </div>
-                <div className="rounded-[20px] border border-[#00b0ff]/15 bg-[#00b0ff]/5 p-8">
-                  <div className="flex items-center gap-3 mb-4">
-                    <div className="w-9 h-9 rounded-xl bg-[#00b0ff]/15 flex items-center justify-center text-[#00b0ff]">
-                      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" /><path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                      </svg>
-                    </div>
-                    <h3 className="text-xl font-bold text-white">Vision</h3>
-                  </div>
-                  <p className="text-[17px] text-zinc-400 leading-relaxed">
-                    To become a global standard for AI-powered image ownership verification, enabling every creator to confidently publish, share, and protect their digital assets.
-                  </p>
+              {/* Description */}
+              <p className="text-sm sm:text-base text-zinc-300 leading-relaxed font-sans">
+                Lakxam Rekha is an AI-powered platform that secures digital images using invisible watermarking, cryptographic ownership verification, AI-based tamper detection, and encrypted image protection. It helps creators, photographers, artists, researchers, and organizations prove ownership while maintaining image quality.
+              </p>
+
+              {/* Animated Technology Tags */}
+              <div className="pt-2">
+                <div className="flex flex-wrap gap-2">
+                  {TECH_TAGS.map((tag, idx) => (
+                    <motion.span
+                      key={tag}
+                      whileHover={{ scale: 1.06, y: -2 }}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.08 + idx * 0.03, duration: 0.4 }}
+                      className="px-3.5 py-1.5 rounded-full bg-white/[0.04] border border-white/[0.08] hover:border-[#9b51e0]/40 hover:bg-[#9b51e0]/15 text-xs font-medium text-zinc-300 hover:text-white cursor-default transition-all duration-200 shadow-sm"
+                    >
+                      {tag}
+                    </motion.span>
+                  ))}
                 </div>
               </div>
-            </div>
-          </div>
-        </motion.section>
 
-        {/* ── SECURITY FEATURES SECTION ── */}
-        <motion.section
-          className="mb-24"
-          initial="hidden"
-          whileInView="visible"
-          viewport={{ once: true, margin: '-80px' }}
-          variants={fadeUp}
-          custom={0}
-        >
-          <div className="text-center mb-14">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-[#00b0ff]/20 bg-[#00b0ff]/8 text-[#00b0ff] text-xs font-bold uppercase tracking-widest mb-5">
-              Security
+              {/* Action Buttons */}
+              <div className="flex flex-wrap gap-4 pt-4">
+                <Link
+                  href="/signup"
+                  className="px-8 py-4 rounded-xl bg-gradient-to-r from-[#9b51e0] to-[#00b0ff] text-black font-extrabold text-sm hover:brightness-110 active:scale-[0.97] transition-all shadow-xl shadow-[#9b51e0]/25 flex items-center gap-2"
+                >
+                  Get Started <ArrowRight className="w-4 h-4" />
+                </Link>
+                <Link
+                  href="/upload"
+                  className="px-8 py-4 rounded-xl border border-white/15 bg-white/[0.03] text-white font-bold text-sm hover:bg-white/[0.08] hover:border-white/30 transition-all flex items-center gap-2"
+                >
+                  <Upload className="w-4 h-4 text-[#00b0ff]" /> Upload Image
+                </Link>
+              </div>
             </div>
-            <h2 className="text-4xl sm:text-5xl font-extrabold tracking-tight text-white mb-4">
-              Enterprise-Grade Security
-            </h2>
-            <p className="text-xl text-zinc-500 max-w-2xl mx-auto leading-relaxed">
-              Built on military-grade cryptography and AI-powered detection to protect every image you upload.
-            </p>
-          </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
-            {securityFeatures.map((feat, i) => (
+            {/* ── RIGHT SIDE (55% -> lg:col-span-7): Overlapping Floating Image Collage ── */}
+            <div className="lg:col-span-7 relative h-[420px] sm:h-[480px] w-full flex items-center justify-center">
+
+              {/* Central Glowing Backdrop */}
+              <div className="absolute inset-0 bg-gradient-to-r from-[#9b51e0]/20 to-[#00b0ff]/20 rounded-3xl blur-3xl scale-95 pointer-events-none animate-pulse" />
+
+              {/* COLLAGE IMAGE 1: Digital Artwork / AI (Main Left Center) */}
               <motion.div
-                key={feat.title}
-                initial="hidden"
-                whileInView="visible"
-                viewport={{ once: true, margin: '-40px' }}
-                variants={fadeUp}
-                custom={i}
-                whileHover={{ y: -4, scale: 1.01 }}
-                className="group relative rounded-[24px] border border-white/[0.06] hover:border-[#9b51e0]/35 bg-white/[0.02] hover:bg-[#9b51e0]/5 backdrop-blur-md p-7 flex flex-col gap-4 cursor-default transition-all duration-300 shadow-lg shadow-black/20 hover:shadow-[#9b51e0]/10"
+                animate={{ y: [0, -10, 0] }}
+                transition={{ duration: 6, repeat: Infinity, ease: 'easeInOut' }}
+                className="absolute top-4 left-2 sm:left-6 w-[220px] sm:w-[270px] rounded-2xl border border-[#9b51e0]/40 bg-[#0d0d16] p-2.5 shadow-2xl z-20 backdrop-blur-md"
               >
-                {/* glow on hover */}
-                <div className="absolute inset-0 rounded-[24px] opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none bg-gradient-to-br from-[#9b51e0]/5 to-transparent" />
-
-                <div className="w-14 h-14 rounded-[16px] bg-gradient-to-br from-[#9b51e0]/15 to-[#00b0ff]/10 border border-[#9b51e0]/20 flex items-center justify-center text-[#9b51e0] group-hover:scale-105 transition-transform duration-300 shadow-md shadow-[#9b51e0]/10">
-                  {feat.icon}
+                <div className="relative h-36 sm:h-44 rounded-xl overflow-hidden">
+                  <img src="https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=600&q=80" alt="Digital Artwork" className="w-full h-full object-cover" />
+                  <div className="absolute top-2 right-2 px-2 py-0.5 rounded-full bg-emerald-500/20 border border-emerald-500/40 text-[9px] text-emerald-400 font-bold backdrop-blur-md">
+                    ● WATERMARKED
+                  </div>
                 </div>
-                <h3 className="text-[20px] font-bold text-white leading-snug">{feat.title}</h3>
-                <p className="text-[16px] text-zinc-500 group-hover:text-zinc-400 leading-relaxed transition-colors duration-300 flex-1">{feat.desc}</p>
+                <div className="pt-2 px-1 flex items-center justify-between">
+                  <span className="text-xs font-bold text-white truncate">Digital Artwork</span>
+                  <span className="text-[10px] text-zinc-400 font-mono">LR-WM-99</span>
+                </div>
+              </motion.div>
+
+              {/* COLLAGE IMAGE 2: Photography / Camera (Top Right) */}
+              <motion.div
+                animate={{ y: [0, 8, 0] }}
+                transition={{ duration: 5, repeat: Infinity, ease: 'easeInOut', delay: 0.5 }}
+                className="absolute top-0 right-2 sm:right-8 w-[200px] sm:w-[240px] rounded-2xl border border-[#00b0ff]/40 bg-[#0d0d16] p-2.5 shadow-2xl z-10 backdrop-blur-md"
+              >
+                <div className="relative h-32 sm:h-40 rounded-xl overflow-hidden">
+                  <img src="https://images.unsplash.com/photo-1516035069371-29a1b244cc32?auto=format&fit=crop&w=600&q=80" alt="Photography Studio" className="w-full h-full object-cover" />
+                  <div className="absolute top-2 right-2 px-2 py-0.5 rounded-full bg-cyan-500/20 border border-cyan-500/40 text-[9px] text-cyan-400 font-bold backdrop-blur-md">
+                    ● VERIFIED
+                  </div>
+                </div>
+                <div className="pt-2 px-1 flex items-center justify-between">
+                  <span className="text-xs font-bold text-white truncate">Commercial Photo</span>
+                  <span className="text-[10px] text-zinc-400 font-mono">RAW 6K</span>
+                </div>
+              </motion.div>
+
+              {/* COLLAGE IMAGE 3: Neural AI / Computer Vision (Bottom Center Right) */}
+              <motion.div
+                animate={{ y: [0, -12, 0] }}
+                transition={{ duration: 7, repeat: Infinity, ease: 'easeInOut', delay: 1 }}
+                className="absolute bottom-2 right-4 sm:right-12 w-[230px] sm:w-[280px] rounded-2xl border border-purple-500/40 bg-[#0d0d16] p-2.5 shadow-2xl z-30 backdrop-blur-md"
+              >
+                <div className="relative h-36 sm:h-44 rounded-xl overflow-hidden">
+                  <img src="https://images.unsplash.com/photo-1620712943543-bcc4688e7485?auto=format&fit=crop&w=600&q=80" alt="AI Interface" className="w-full h-full object-cover" />
+                  <div className="absolute top-2 right-2 px-2 py-0.5 rounded-full bg-purple-500/20 border border-purple-500/40 text-[9px] text-purple-300 font-bold backdrop-blur-md">
+                    ● AI SCAN ACTIVE
+                  </div>
+                </div>
+                <div className="pt-2 px-1 flex items-center justify-between">
+                  <span className="text-xs font-bold text-white truncate">AI Neural Diagram</span>
+                  <span className="text-[10px] text-emerald-400 font-mono">AES-256 ✓</span>
+                </div>
+              </motion.div>
+
+              {/* COLLAGE FLOATING WIDGET 4: Encryption & Security Interface (Bottom Left) */}
+              <motion.div
+                animate={{ y: [0, 10, 0] }}
+                transition={{ duration: 5.5, repeat: Infinity, ease: 'easeInOut', delay: 1.5 }}
+                className="absolute bottom-4 left-4 sm:left-12 p-3.5 rounded-2xl border border-white/15 bg-black/80 backdrop-blur-xl shadow-2xl z-40 flex items-center gap-3"
+              >
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#9b51e0] to-[#00b0ff] flex items-center justify-center text-black font-bold flex-shrink-0">
+                  <ShieldCheck className="w-5 h-5 text-black" />
+                </div>
+                <div>
+                  <p className="text-xs font-extrabold text-white">Cryptographic Signature</p>
+                  <p className="text-[10px] text-emerald-400 font-mono">Tamper Proof Verified ✓</p>
+                </div>
+              </motion.div>
+
+            </div>
+
+          </div>
+        </div>
+      </div>
+
+      {/* ══════════════════════════════════════════════════════
+          3. TOOLBAR (120px Whitespace Above)
+      ══════════════════════════════════════════════════════ */}
+      <div className="max-w-[1440px] mx-auto px-6 sm:px-12 md:px-[80px] pt-[80px] pb-[60px] space-y-[40px]">
+
+        {/* TOOLBAR */}
+        <div className="p-4 rounded-[24px] border border-white/[0.08] bg-[#0c0c14]/90 backdrop-blur-xl flex flex-wrap items-center justify-between gap-4 shadow-xl">
+
+          {/* Search Input */}
+          <div className="relative flex-1 min-w-[260px] max-w-md">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search protected images..."
+              className="w-full pl-11 pr-10 py-3 rounded-xl bg-white/[0.03] border border-white/[0.06] text-xs text-white placeholder:text-zinc-600 focus:outline-none focus:border-[#9b51e0]/40 transition-colors"
+            />
+            {searchQuery && (
+              <button onClick={() => setSearchQuery('')} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-white">
+                <X className="w-4 h-4" />
+              </button>
+            )}
+          </div>
+
+          {/* Right Toolbar Controls */}
+          <div className="flex flex-wrap items-center gap-3">
+            {/* Filter Dropdown */}
+            <div className="relative flex items-center">
+              <Filter className="absolute left-3.5 w-3.5 h-3.5 text-zinc-500 pointer-events-none" />
+              <select
+                value={selectedFilter}
+                onChange={(e) => setSelectedFilter(e.target.value)}
+                className="pl-9 pr-8 py-3 rounded-xl bg-white/[0.03] border border-white/[0.06] text-xs text-zinc-300 focus:outline-none appearance-none cursor-pointer hover:border-white/15 transition-colors"
+              >
+                <option value="All">All Categories</option>
+                <option value="Protected">Protected</option>
+                <option value="Verified">Verified</option>
+                <option value="Watermarked">Watermarked</option>
+                <option value="Encrypted">Encrypted</option>
+                <option value="AI Scanned">AI Scanned</option>
+                <option value="Owner Verified">Owner Verified</option>
+              </select>
+            </div>
+
+            {/* Sort Dropdown */}
+            <div className="relative flex items-center">
+              <ArrowUpDown className="absolute left-3.5 w-3.5 h-3.5 text-zinc-500 pointer-events-none" />
+              <select
+                value={selectedSort}
+                onChange={(e) => setSelectedSort(e.target.value as any)}
+                className="pl-9 pr-8 py-3 rounded-xl bg-white/[0.03] border border-white/[0.06] text-xs text-zinc-300 focus:outline-none appearance-none cursor-pointer hover:border-white/15 transition-colors"
+              >
+                <option value="newest">Sort: Newest</option>
+                <option value="oldest">Sort: Oldest</option>
+                <option value="title">Sort: Title A-Z</option>
+                <option value="size">Sort: Size</option>
+              </select>
+            </div>
+
+            {/* Grid / List View Toggle */}
+            <div className="flex items-center p-1 rounded-xl bg-white/[0.03] border border-white/[0.06]">
+              <button
+                onClick={() => setViewMode('grid')}
+                className={`p-2 rounded-lg transition-all ${viewMode === 'grid' ? 'bg-[#9b51e0] text-black shadow-md' : 'text-zinc-500 hover:text-white'}`}
+                title="Grid View"
+              >
+                <LayoutGrid className="w-4 h-4" />
+              </button>
+              <button
+                onClick={() => setViewMode('list')}
+                className={`p-2 rounded-lg transition-all ${viewMode === 'list' ? 'bg-[#9b51e0] text-black shadow-md' : 'text-zinc-500 hover:text-white'}`}
+                title="List View"
+              >
+                <List className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Upload Button */}
+            <Link
+              href="/upload"
+              className="flex items-center gap-2 px-5 py-3 rounded-xl bg-gradient-to-r from-[#9b51e0] to-[#00b0ff] text-black font-bold text-xs hover:brightness-110 active:scale-[0.97] transition-all shadow-lg shadow-[#9b51e0]/20"
+            >
+              <Plus className="w-4 h-4" /> Upload Image
+            </Link>
+          </div>
+        </div>
+
+        {/* ══════════════════════════════════════════════════════
+            4. PROTECTED IMAGE GALLERY (3-column cards)
+        ══════════════════════════════════════════════════════ */}
+        {filteredGallery.length === 0 ? (
+          /* EMPTY STATE */
+          <div className="py-[120px] flex flex-col items-center justify-center text-center rounded-[32px] border border-white/[0.07] bg-white/[0.015] p-12">
+            <div className="w-20 h-20 rounded-3xl bg-[#9b51e0]/15 border border-[#9b51e0]/30 flex items-center justify-center text-[#9b51e0] mb-6 shadow-2xl">
+              <Fingerprint className="w-10 h-10" />
+            </div>
+            <h3 className="text-2xl font-extrabold text-white mb-2">No Protected Images Found</h3>
+            <p className="text-sm text-zinc-500 max-w-sm leading-relaxed mb-8">
+              No protected images match your current filter settings or search query.
+            </p>
+            <Link
+              href="/upload"
+              className="px-8 py-3.5 rounded-xl bg-gradient-to-r from-[#9b51e0] to-[#00b0ff] text-black font-bold text-xs hover:brightness-110 transition-all shadow-lg"
+            >
+              Upload New Image
+            </Link>
+          </div>
+        ) : viewMode === 'grid' ? (
+          /* GRID MODE — 3 columns, 40px gap, large 70% height image */
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-[40px]">
+            {filteredGallery.map((img, i) => (
+              <motion.div
+                key={img.id}
+                initial={{ opacity: 0, y: 24 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, delay: i * 0.08, ease }}
+                whileHover={{ y: -6, scale: 1.02 }}
+                onClick={() => setSelectedImage(img)}
+                className="group relative h-[500px] rounded-[24px] border border-white/[0.08] bg-[#0c0c14]/90 backdrop-blur-xl overflow-hidden shadow-2xl hover:border-[#9b51e0]/40 hover:shadow-[#9b51e0]/15 transition-all duration-300 flex flex-col cursor-pointer"
+              >
+                {/* LARGE IMAGE PREVIEW (70% height ~350px) */}
+                <div className="relative w-full h-[350px] bg-zinc-950 overflow-hidden flex-shrink-0">
+                  <img
+                    src={img.imageUrl}
+                    alt={img.title}
+                    className="w-full h-full object-cover group-hover:scale-108 transition-transform duration-700 ease-out"
+                  />
+
+                  <div className="absolute inset-0 bg-gradient-to-t from-[#0c0c14] via-transparent to-black/30 opacity-70" />
+
+                  <div className="absolute top-4 right-4 z-10">
+                    {renderStatusBadge(img.status)}
+                  </div>
+
+                  <div className="absolute top-4 left-4 z-10 px-3 py-1 rounded-lg bg-black/60 backdrop-blur-md border border-white/10 text-[10px] text-zinc-400 font-mono">
+                    {img.watermarkId}
+                  </div>
+
+                  {/* HOVER OVERLAY WITH 4 ACTION BUTTONS */}
+                  <div className="absolute inset-0 bg-[#07070A]/85 backdrop-blur-md opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center gap-3 p-4 z-20">
+                    <button
+                      onClick={(e) => { e.stopPropagation(); setSelectedImage(img); }}
+                      className="flex flex-col items-center gap-1.5 px-4 py-3 rounded-xl bg-white/[0.06] border border-white/10 hover:bg-[#9b51e0] hover:text-black text-white transition-all transform hover:scale-105"
+                    >
+                      <Eye className="w-4 h-4" />
+                      <span className="text-[10px] font-bold">View</span>
+                    </button>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); showToast(`Verified: ${img.watermarkId} is authentic ✓`); }}
+                      className="flex flex-col items-center gap-1.5 px-4 py-3 rounded-xl bg-white/[0.06] border border-white/10 hover:bg-[#00b0ff] hover:text-black text-white transition-all transform hover:scale-105"
+                    >
+                      <ShieldCheck className="w-4 h-4" />
+                      <span className="text-[10px] font-bold">Verify</span>
+                    </button>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); showToast(`Downloading: ${img.title}`); }}
+                      className="flex flex-col items-center gap-1.5 px-4 py-3 rounded-xl bg-white/[0.06] border border-white/10 hover:bg-emerald-400 hover:text-black text-white transition-all transform hover:scale-105"
+                    >
+                      <Download className="w-4 h-4" />
+                      <span className="text-[10px] font-bold">Download</span>
+                    </button>
+                    <Link
+                      href="/results"
+                      onClick={(e) => e.stopPropagation()}
+                      className="flex flex-col items-center gap-1.5 px-4 py-3 rounded-xl bg-white/[0.06] border border-white/10 hover:bg-purple-400 hover:text-black text-white transition-all transform hover:scale-105"
+                    >
+                      <Info className="w-4 h-4" />
+                      <span className="text-[10px] font-bold">Details</span>
+                    </Link>
+                  </div>
+                </div>
+
+                {/* CONTENT BELOW IMAGE (30% height ~150px) */}
+                <div className="p-6 flex flex-col justify-between flex-1 gap-2">
+                  <div>
+                    <h3 className="text-base font-bold text-white group-hover:text-[#9b51e0] transition-colors line-clamp-1 mb-1">
+                      {img.title}
+                    </h3>
+                    <p className="text-xs text-zinc-400 leading-relaxed line-clamp-2">
+                      {img.description}
+                    </p>
+                  </div>
+
+                  <div className="pt-3 border-t border-white/[0.06] flex items-center justify-between text-[11px] text-zinc-500">
+                    <span className="font-mono">{img.resolution}</span>
+                    <div className="flex items-center gap-2">
+                      <span>{img.size}</span>
+                      <span>·</span>
+                      <span>{img.date}</span>
+                    </div>
+                  </div>
+                </div>
               </motion.div>
             ))}
           </div>
-        </motion.section>
-
-        {/* ── UPLOAD CTA ── */}
-        <motion.section
-          className="mb-20 text-center"
-          initial="hidden"
-          whileInView="visible"
-          viewport={{ once: true, margin: '-60px' }}
-          variants={fadeUp}
-          custom={0}
-        >
-          <div className="relative inline-block">
-            <div className="absolute inset-0 rounded-[20px] blur-2xl bg-gradient-to-r from-[#9b51e0]/30 to-[#00b0ff]/30 scale-110" />
-            <Link
-              href="/upload"
-              className="relative inline-flex items-center gap-3 px-12 py-5 rounded-[20px] bg-gradient-to-r from-[#9b51e0] to-[#00b0ff] text-black font-extrabold text-xl tracking-tight hover:brightness-110 active:scale-[0.98] transition-all duration-200 shadow-2xl shadow-[#9b51e0]/25"
-            >
-              <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
-              </svg>
-              Secure Your First Image
-            </Link>
-          </div>
-          <p className="text-zinc-600 text-base mt-5">
-            Drag, drop, and watermark in under 30 seconds.
-          </p>
-        </motion.section>
-
-      </main>
-
-      {/* ─── FOOTER ─── */}
-      <footer className="relative z-10 w-full border-t border-white/[0.05] bg-[#05050A]/80 backdrop-blur-xl pt-16 pb-10 px-10 sm:px-16">
-        <div className="max-w-[1400px] mx-auto">
-          <div className="grid grid-cols-1 md:grid-cols-12 gap-12 mb-14">
-
-            {/* Brand col */}
-            <div className="md:col-span-5">
-              <Link href="/" className="flex items-center gap-3 group mb-5">
-                <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-[#9b51e0] to-[#00b0ff] flex items-center justify-center text-black font-black text-lg shadow-lg shadow-[#9b51e0]/20">
-                  L
+        ) : (
+          /* LIST MODE */
+          <div className="space-y-4">
+            {filteredGallery.map((img) => (
+              <div
+                key={img.id}
+                onClick={() => setSelectedImage(img)}
+                className="group p-4 rounded-[20px] border border-white/[0.08] bg-[#0c0c14]/90 backdrop-blur-xl hover:border-[#9b51e0]/30 transition-all flex items-center gap-6 cursor-pointer"
+              >
+                <div className="w-28 h-20 rounded-xl overflow-hidden bg-zinc-950 flex-shrink-0">
+                  <img src={img.imageUrl} alt={img.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
                 </div>
-                <span className="text-xl font-bold tracking-tight text-white">Lakxam Rekha</span>
-              </Link>
-              <p className="text-[17px] text-zinc-500 leading-relaxed max-w-xs">
-                Protecting Every Pixel.<br />
-                <span className="text-[#00b0ff]">Preserving Every Creator.</span>
-              </p>
-            </div>
-
-            {/* Links */}
-            <div className="md:col-span-3">
-              <h4 className="text-sm font-bold text-white uppercase tracking-widest mb-5">Platform</h4>
-              <ul className="space-y-3 text-[16px]">
-                {[
-                  { label: 'Dashboard', href: '/home' },
-                  { label: 'Upload', href: '/upload' },
-                  { label: 'Profile', href: '/profile' },
-                ].map((l) => (
-                  <li key={l.label}>
-                    <Link href={l.href} className="text-zinc-500 hover:text-[#9b51e0] transition-colors">{l.label}</Link>
-                  </li>
-                ))}
-              </ul>
-            </div>
-
-            <div className="md:col-span-2">
-              <h4 className="text-sm font-bold text-white uppercase tracking-widest mb-5">Legal</h4>
-              <ul className="space-y-3 text-[16px]">
-                {[
-                  { label: 'Privacy Policy', href: '/terms' },
-                  { label: 'Terms of Service', href: '/terms' },
-                  { label: 'Contact', href: '/cooperation' },
-                ].map((l) => (
-                  <li key={l.label}>
-                    <Link href={l.href} className="text-zinc-500 hover:text-[#9b51e0] transition-colors">{l.label}</Link>
-                  </li>
-                ))}
-              </ul>
-            </div>
-
-            {/* Social */}
-            <div className="md:col-span-2">
-              <h4 className="text-sm font-bold text-white uppercase tracking-widest mb-5">Connect</h4>
-              <div className="flex flex-col gap-3">
-                {[
-                  { label: 'GitHub', href: '#', icon: <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path fillRule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z" clipRule="evenodd" /></svg> },
-                  { label: 'LinkedIn', href: '#', icon: <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.064 2.064 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg> },
-                  { label: 'Email', href: 'mailto:contact@lakxamrekha.ai', icon: <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75" /></svg> },
-                ].map((s) => (
-                  <a key={s.label} href={s.href} className="flex items-center gap-2.5 text-[15px] text-zinc-500 hover:text-[#9b51e0] transition-colors group">
-                    <span className="w-7 h-7 rounded-lg bg-white/[0.04] border border-white/[0.06] group-hover:border-[#9b51e0]/30 flex items-center justify-center transition-colors">
-                      {s.icon}
-                    </span>
-                    {s.label}
-                  </a>
-                ))}
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-3 mb-1">
+                    <h3 className="text-base font-bold text-white group-hover:text-[#9b51e0] transition-colors truncate">{img.title}</h3>
+                    {renderStatusBadge(img.status)}
+                  </div>
+                  <p className="text-xs text-zinc-400 line-clamp-1 mb-1">{img.description}</p>
+                  <p className="text-[11px] text-zinc-600 font-mono">{img.watermarkId} · {img.resolution} · {img.size} · {img.date}</p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button onClick={(e) => { e.stopPropagation(); setSelectedImage(img); }} className="p-2.5 rounded-lg border border-white/10 hover:bg-[#9b51e0] hover:text-black text-zinc-400 transition-colors">
+                    <Eye className="w-4 h-4" />
+                  </button>
+                  <Link href="/results" onClick={(e) => e.stopPropagation()} className="p-2.5 rounded-lg border border-white/10 hover:bg-[#00b0ff] hover:text-black text-zinc-400 transition-colors">
+                    <ArrowRight className="w-4 h-4" />
+                  </Link>
+                </div>
               </div>
-            </div>
+            ))}
           </div>
+        )}
 
-          {/* Bottom bar */}
-          <div className="border-t border-white/[0.05] pt-8 flex flex-col sm:flex-row items-center justify-between gap-4">
-            <p className="text-[15px] text-zinc-600">© 2026 Lakxam Rekha. All Rights Reserved.</p>
-            <p className="text-[13px] text-zinc-700 font-mono uppercase tracking-widest">
-              Powered by AI · AES-256 Encrypted
-            </p>
+      </div>
+
+      {/* IMAGE DETAIL MODAL */}
+      <AnimatePresence>
+        {selectedImage && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-black/80 backdrop-blur-xl">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="relative w-full max-w-3xl rounded-[32px] border border-white/10 bg-[#0d0d14] p-8 shadow-2xl overflow-hidden"
+            >
+              <button
+                onClick={() => setSelectedImage(null)}
+                className="absolute top-6 right-6 w-9 h-9 rounded-full bg-white/[0.05] border border-white/10 flex items-center justify-center text-zinc-400 hover:text-white transition-colors z-10"
+              >
+                <X className="w-4 h-4" />
+              </button>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
+                <div className="relative rounded-2xl overflow-hidden border border-white/10 bg-black/40 h-64 md:h-80 flex items-center justify-center">
+                  <img src={selectedImage.imageUrl} alt={selectedImage.title} className="w-full h-full object-contain" />
+                  <div className="absolute top-3 left-3">{renderStatusBadge(selectedImage.status)}</div>
+                </div>
+
+                <div className="space-y-5">
+                  <div>
+                    <div className="text-xs text-[#9b51e0] font-mono mb-1">{selectedImage.watermarkId}</div>
+                    <h2 className="text-xl font-extrabold text-white mb-2">{selectedImage.title}</h2>
+                    <p className="text-xs text-zinc-400 leading-relaxed mb-4">{selectedImage.description}</p>
+                  </div>
+
+                  <div className="space-y-2.5 p-4 rounded-xl border border-white/[0.06] bg-[#07070A]/50 text-xs">
+                    <div className="flex justify-between">
+                      <span className="text-zinc-500">Owner Name:</span>
+                      <span className="text-zinc-200 font-semibold">{selectedImage.owner}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-zinc-500">Resolution:</span>
+                      <span className="text-zinc-200 font-mono">{selectedImage.resolution}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-zinc-500">File Size:</span>
+                      <span className="text-zinc-200 font-mono">{selectedImage.size}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-zinc-500">Encryption:</span>
+                      <span className="text-emerald-400 font-semibold">AES-256-GCM ✓</span>
+                    </div>
+                  </div>
+
+                  <div className="flex gap-3 pt-2">
+                    <Link
+                      href="/results"
+                      className="flex-1 text-center py-3 rounded-xl bg-gradient-to-r from-[#9b51e0] to-[#00b0ff] text-black font-bold text-xs hover:brightness-110 transition-all shadow-md"
+                    >
+                      View Full Analysis Report
+                    </Link>
+                    <button
+                      onClick={() => setSelectedImage(null)}
+                      className="px-5 py-3 rounded-xl border border-white/10 text-zinc-400 font-semibold text-xs hover:text-white transition-all"
+                    >
+                      Close
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
           </div>
-        </div>
-      </footer>
+        )}
+      </AnimatePresence>
 
-    </div>
+    </DashboardLayout>
   );
 }
