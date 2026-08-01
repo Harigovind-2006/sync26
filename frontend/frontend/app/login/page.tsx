@@ -1,184 +1,133 @@
 'use client';
 
 import React, { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { motion } from 'framer-motion';
 import Link from 'next/link';
-import { useAuth } from '../../context/AuthContext';
+import { useRouter } from 'next/navigation';
+import { ShieldCheck, Mail, Lock, ArrowRight, Sparkles } from 'lucide-react';
 
 export default function LoginPage() {
   const router = useRouter();
-  const { login } = useAuth();
+  const [email, setEmail] = useState('creator@laxmanrekha.ai');
+  const [password, setPassword] = useState('password123');
+  const [loading, setLoading] = useState(false);
 
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [rememberMe, setRememberMe] = useState(false);
-  const [errorMsg, setErrorMsg] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
-    setErrorMsg('');
+    setLoading(true);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('isLoggedIn', 'true');
+    }
+    setTimeout(() => {
+      router.push('/dashboard');
+    }, 400);
+  };
 
-    // Basic Validation
-    if (!email.includes('@')) {
-      setErrorMsg('Please enter a valid email address.');
-      return;
+  const handleQuickDemoLogin = () => {
+    setLoading(true);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('isLoggedIn', 'true');
     }
-    if (password.length < 6) {
-      setErrorMsg('Password must be at least 6 characters.');
-      return;
-    }
-
-    setIsLoading(true);
-    try {
-      const success = await login(email, password);
-      if (success) {
-        // Redirect directly to Home Dashboard
-        router.push('/home');
-      } else {
-        setErrorMsg('Invalid email or security password.');
-      }
-    } catch (err) {
-      setErrorMsg('An error occurred during authentication.');
-    } finally {
-      setIsLoading(false);
-    }
+    setTimeout(() => {
+      router.push('/dashboard');
+    }, 300);
   };
 
   return (
-    <div className="min-h-screen bg-[#020205] text-[#f8f9fa] flex flex-col justify-center items-center px-6 relative overflow-hidden">
-      {/* Background glow spots */}
-      <div className="absolute top-[20%] right-[-15%] w-[400px] h-[400px] bg-[#9b51e0]/5 rounded-full blur-[130px] pointer-events-none"></div>
-      <div className="absolute bottom-[20%] left-[-15%] w-[400px] h-[400px] bg-[#00b0ff]/5 rounded-full blur-[130px] pointer-events-none"></div>
+    <div className="min-h-screen bg-[#070a0f] text-[#f0f6fc] flex flex-col justify-between items-center relative overflow-hidden p-6">
+      
+      {/* Glow Background */}
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-amber-500/10 blur-3xl pointer-events-none rounded-full"></div>
 
-      {/* Back Button */}
-      <Link
-        href="/"
-        className="absolute top-6 left-6 flex items-center gap-2 text-[10px] font-mono uppercase tracking-widest text-zinc-500 hover:text-white transition-colors"
-      >
-        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-        </svg>
-        Home
-      </Link>
+      {/* Top Brand Link */}
+      <div className="pt-6">
+        <Link href="/" className="flex items-center gap-3 group">
+          <div className="w-10 h-10 rounded-xl bg-amber-500/20 border border-amber-500/30 flex items-center justify-center text-amber-400">
+            <ShieldCheck className="w-5 h-5" />
+          </div>
+          <span className="text-xl font-black text-white">Laxman<span className="text-amber-400">Rekha</span></span>
+        </Link>
+      </div>
 
-      {/* Login Card */}
-      <motion.div
-        className="w-full max-w-sm bg-[#090812]/50 border border-[#9b51e0]/10 p-8 rounded-[24px] shadow-2xl backdrop-blur-md relative z-10 flex flex-col gap-6"
-        initial={{ opacity: 0, y: 30 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ type: 'spring', stiffness: 100, damping: 20 }}
-      >
-        {/* Brand logo header */}
-        <div className="flex flex-col items-center gap-3 text-center">
-          <div className="w-8 h-8 bg-gradient-to-br from-[#9b51e0] to-[#00b0ff] text-black font-extrabold rounded-xl flex items-center justify-center text-sm shadow-md shadow-[#9b51e0]/15">
-            L
-          </div>
-          <div>
-            <h1 className="font-sans text-xs uppercase font-extrabold tracking-widest text-white">Lakxam Rekha</h1>
-            <p className="text-zinc-500 text-[10px] mt-1 font-mono">Authenticate to access image protection console</p>
-          </div>
+      {/* Login Form Card */}
+      <div className="w-full max-w-md bg-[#0e131d] border border-white/10 rounded-3xl p-8 space-y-6 shadow-2xl z-10 my-12">
+        
+        <div className="text-center space-y-2">
+          <span className="px-3 py-1 bg-amber-500/10 text-amber-400 border border-amber-500/20 rounded-full text-[11px] font-bold inline-block">
+            CREATOR PORTAL
+          </span>
+          <h2 className="text-2xl font-black text-white">Sign In to Laxman Rekha</h2>
+          <p className="text-xs text-slate-400">Access your protected photographs and breach logs.</p>
         </div>
 
-        {/* Errors display */}
-        {errorMsg && (
-          <div className="p-3 bg-red-500/10 border border-red-500/20 text-red-400 text-[10px] font-mono rounded-xl leading-relaxed">
-            {errorMsg}
-          </div>
-        )}
+        {/* Quick Demo Sign In Button */}
+        <button
+          onClick={handleQuickDemoLogin}
+          className="w-full bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 font-extrabold py-3.5 rounded-xl text-xs flex items-center justify-center gap-2 shadow-lg shadow-orange-500/20 transition-all transform hover:scale-[1.02] cursor-pointer"
+        >
+          <Sparkles className="w-4 h-4 fill-slate-950" />
+          <span>Quick Demo Login to Dashboard</span>
+          <ArrowRight className="w-4 h-4" />
+        </button>
 
-        {/* Login Form */}
-        <form onSubmit={handleSubmit} className="flex flex-col gap-4 font-mono text-[9px] uppercase tracking-wider text-zinc-500">
-          <div className="flex flex-col gap-1.5">
-            <label className="font-bold">Email Address</label>
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-              placeholder="operator@lakxamrekha.ai"
-              className="px-4 py-3 bg-black/60 border border-white/5 focus:border-[#9b51e0] rounded-xl text-xs text-white placeholder-zinc-800 focus:outline-none transition-all font-sans"
-            />
-          </div>
+        <div className="flex items-center gap-3 text-slate-600 text-xs my-2">
+          <div className="flex-1 h-px bg-white/10"></div>
+          <span>or sign in with credentials</span>
+          <div className="flex-1 h-px bg-white/10"></div>
+        </div>
 
-          <div className="flex flex-col gap-1.5">
-            <label className="font-bold">Password</label>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              placeholder="••••••••••••"
-              className="px-4 py-3 bg-black/60 border border-white/5 focus:border-[#9b51e0] rounded-xl text-xs text-white placeholder-zinc-800 focus:outline-none transition-all font-sans"
-            />
-          </div>
-
-          {/* Options Row */}
-          <div className="flex items-center justify-between font-sans text-[10px] text-zinc-400 py-1 lowercase">
-            <label className="flex items-center gap-1.5 cursor-pointer">
+        {/* Credentials Form */}
+        <form onSubmit={handleLogin} className="space-y-4">
+          
+          <div>
+            <label className="text-xs font-semibold text-slate-300 block mb-1.5">Email Address</label>
+            <div className="relative">
+              <Mail className="w-4 h-4 text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
               <input
-                type="checkbox"
-                checked={rememberMe}
-                onChange={(e) => setRememberMe(e.target.checked)}
-                className="w-3.5 h-3.5 bg-black border border-white/10 rounded focus:ring-0 text-[#9b51e0] checked:bg-[#9b51e0] cursor-pointer"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+                className="w-full bg-[#131924] border border-white/10 rounded-xl pl-10 pr-4 py-3 text-xs text-white focus:outline-none focus:border-amber-400 transition-colors"
               />
-              <span>Remember Me</span>
-            </label>
-            <a href="#" className="text-[#00b0ff] hover:underline uppercase text-[8px] font-mono tracking-wider font-bold">
-              Forgot Password
-            </a>
+            </div>
+          </div>
+
+          <div>
+            <div className="flex items-center justify-between mb-1.5">
+              <label className="text-xs font-semibold text-slate-300">Password</label>
+              <a href="#" className="text-[11px] text-amber-400 hover:underline">Forgot password?</a>
+            </div>
+            <div className="relative">
+              <Lock className="w-4 h-4 text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
+              <input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                className="w-full bg-[#131924] border border-white/10 rounded-xl pl-10 pr-4 py-3 text-xs text-white focus:outline-none focus:border-amber-400 transition-colors"
+              />
+            </div>
           </div>
 
           <button
             type="submit"
-            disabled={isLoading}
-            className="w-full py-3.5 bg-gradient-to-r from-[#9b51e0] to-[#00b0ff] hover:brightness-110 text-black font-extrabold text-[10px] uppercase tracking-widest rounded-xl transition-all duration-200 mt-2 font-mono flex justify-center items-center gap-2"
+            disabled={loading}
+            className="w-full bg-slate-800 hover:bg-slate-700 text-white font-bold py-3 rounded-xl text-xs flex items-center justify-center gap-2 border border-white/10 transition-colors cursor-pointer"
           >
-            {isLoading ? (
-              <span className="w-3.5 h-3.5 border-2 border-black border-t-transparent rounded-full animate-spin"></span>
-            ) : (
-              'Authenticate'
-            )}
+            {loading ? 'Authenticating...' : 'Sign In with Email'}
           </button>
+
         </form>
 
-        {/* Social Authentication buttons */}
-        <div className="flex flex-col gap-2.5 pt-4 border-t border-white/5 mt-2 font-mono text-[9px] uppercase tracking-wider text-zinc-500">
-          <div className="text-center text-[8px] tracking-widest text-zinc-600 mb-1">Or login with credentials</div>
-          
-          <div className="grid grid-cols-2 gap-3 text-white text-[10px]">
-            {/* Google Login */}
-            <button
-              onClick={() => {
-                login('google@operator.ai', 'google_session');
-                router.push('/home');
-              }}
-              className="flex items-center justify-center gap-2 px-3 py-2.5 bg-white/[0.02] border border-white/5 hover:bg-white/5 rounded-xl transition-all"
-            >
-              <span>Google</span>
-            </button>
-            {/* Github Login */}
-            <button
-              onClick={() => {
-                login('github@operator.ai', 'github_session');
-                router.push('/home');
-              }}
-              className="flex items-center justify-center gap-2 px-3 py-2.5 bg-white/[0.02] border border-white/5 hover:bg-white/5 rounded-xl transition-all"
-            >
-              <span>GitHub</span>
-            </button>
-          </div>
-        </div>
+        <p className="text-center text-xs text-slate-500">
+          Don't have an account?{' '}
+          <Link href="/signup" className="text-amber-400 font-bold hover:underline">Create one</Link>
+        </p>
 
-        {/* Link to signup */}
-        <div className="text-center text-[10px] text-zinc-500 font-sans border-t border-white/5 pt-4">
-          Don&apos;t have an account?{' '}
-          <Link href="/signup" className="text-[#9b51e0] font-bold hover:underline">
-            Sign Up
-          </Link>
-        </div>
-      </motion.div>
+      </div>
+
+      <p className="pb-6 text-xs text-slate-600">© 2026 Laxman Rekha. All rights reserved.</p>
+
     </div>
   );
 }
