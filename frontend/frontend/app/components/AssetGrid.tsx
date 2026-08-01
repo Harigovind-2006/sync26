@@ -1,8 +1,9 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Search, ChevronDown, AlertTriangle, ExternalLink } from 'lucide-react';
 import { AssetItem } from './AssetInspector';
+import { getLiveAssets } from '../../lib/api';
 
 interface AssetGridProps {
   selectedAsset: AssetItem | null;
@@ -95,10 +96,17 @@ export const mockAssets: AssetItem[] = [
 ];
 
 export default function AssetGrid({ selectedAsset, onSelectAsset, searchQuery, setSearchQuery }: AssetGridProps) {
+  const [assets, setAssets] = useState<AssetItem[]>(mockAssets);
   const [statusFilter, setStatusFilter] = useState('All Status');
   const [protectionFilter, setProtectionFilter] = useState('Protection Type');
 
-  const filtered = mockAssets.filter((a) => {
+  useEffect(() => {
+    getLiveAssets().then((data) => {
+      if (data && data.length > 0) setAssets(data);
+    });
+  }, []);
+
+  const filtered = assets.filter((a) => {
     const matchesSearch = 
       a.filename.toLowerCase().includes(searchQuery.toLowerCase()) ||
       a.title.toLowerCase().includes(searchQuery.toLowerCase());
@@ -158,7 +166,7 @@ export default function AssetGrid({ selectedAsset, onSelectAsset, searchQuery, s
         <span className="text-xs text-slate-500 font-mono">{filtered.length} results</span>
       </div>
 
-      {/* Grid of 6 Asset Cards */}
+      {/* Grid of Asset Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
         {filtered.map((asset) => {
           const isSelected = selectedAsset?.id === asset.id;
@@ -186,12 +194,10 @@ export default function AssetGrid({ selectedAsset, onSelectAsset, searchQuery, s
 
                 {/* Top Badges */}
                 <div className="absolute top-2 left-2 right-2 flex items-center justify-between pointer-events-none">
-                  {/* POL Badge */}
                   <span className="px-2 py-0.5 bg-indigo-900/80 backdrop-blur-md rounded text-[10px] font-bold text-indigo-300 border border-indigo-500/30">
                     POL
                   </span>
 
-                  {/* Status Badge */}
                   {asset.status === 'watermarked' && (
                     <span className="px-2.5 py-0.5 bg-emerald-950/80 backdrop-blur-md rounded-full text-[10px] font-bold text-emerald-400 border border-emerald-500/30 flex items-center gap-1">
                       <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span> Watermarked
@@ -223,7 +229,6 @@ export default function AssetGrid({ selectedAsset, onSelectAsset, searchQuery, s
                   )}
                 </div>
 
-                {/* Red Misuse Link */}
                 {isAlert && (
                   <div className="pt-2 border-t border-red-500/20 flex items-center justify-between text-[11px] text-red-400 font-bold">
                     <span className="flex items-center gap-1">

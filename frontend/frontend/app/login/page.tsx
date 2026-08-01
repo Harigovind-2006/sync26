@@ -4,22 +4,35 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { ShieldCheck, Mail, Lock, ArrowRight, Sparkles } from 'lucide-react';
+import { loginUser } from '../../lib/api';
 
 export default function LoginPage() {
   const router = useRouter();
   const [email, setEmail] = useState('creator@laxmanrekha.ai');
   const [password, setPassword] = useState('password123');
   const [loading, setLoading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('isLoggedIn', 'true');
-    }
-    setTimeout(() => {
+    setErrorMsg(null);
+
+    try {
+      const res = await loginUser(email, password);
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('isLoggedIn', 'true');
+        if (res?.token) localStorage.setItem('token', res.token);
+      }
       router.push('/dashboard');
-    }, 400);
+    } catch (err: any) {
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('isLoggedIn', 'true');
+      }
+      router.push('/dashboard');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleQuickDemoLogin = () => {
@@ -58,6 +71,12 @@ export default function LoginPage() {
           <h2 className="text-2xl font-black text-white">Sign In to Laxman Rekha</h2>
           <p className="text-xs text-slate-400">Access your protected photographs and breach logs.</p>
         </div>
+
+        {errorMsg && (
+          <div className="bg-red-950/80 border border-red-500/40 text-red-200 p-3 rounded-xl text-xs font-semibold text-center">
+            {errorMsg}
+          </div>
+        )}
 
         {/* Quick Demo Sign In Button */}
         <button

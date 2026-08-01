@@ -1,31 +1,49 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
+import { getDashboardMetrics, ApiAnalytics } from '../../lib/api';
 
 export default function TopMetricsRow() {
+  const [metricsData, setMetricsData] = useState<ApiAnalytics>({
+    totalProtectedAssets: 48,
+    activeScansCount: 1420,
+    verificationsOnChain: 48,
+    totalBreachesDetected: 12,
+    dmcaNoticesIssued: 8,
+    quarantinedBlockedImages: 3,
+    totalRoyaltiesEarnedMatic: 4250,
+    totalRoyaltiesEarnedUsd: 3187.5,
+  });
+
+  useEffect(() => {
+    getDashboardMetrics().then((data) => {
+      if (data) setMetricsData(data);
+    });
+  }, []);
+
   const metrics = [
     {
-      title: 'PROTECTED',
-      value: '4',
-      subtitle: 'DWT + Blockchain',
+      title: 'PROTECTED ASSETS',
+      value: String(metricsData.totalProtectedAssets),
+      subtitle: 'DCT + Polygon Verified',
       color: 'text-[#00e5a3]',
     },
     {
-      title: 'PENDING REVIEW',
-      value: '2',
-      subtitle: 'Awaiting processing',
-      color: 'text-amber-400',
+      title: 'ACTIVE SCANS',
+      value: metricsData.activeScansCount.toLocaleString(),
+      subtitle: 'AI Crawlers Monitoring',
+      color: 'text-sky-400',
     },
     {
-      title: 'ACTIVE ALERTS',
-      value: '1',
-      subtitle: 'Requires action',
+      title: 'BREACH ALERTS',
+      value: String(metricsData.totalBreachesDetected),
+      subtitle: `${metricsData.dmcaNoticesIssued} DMCA Notices Issued`,
       color: 'text-red-400',
     },
     {
       title: 'ON-CHAIN RECORDS',
-      value: '4',
-      subtitle: 'Polygon network',
+      value: String(metricsData.verificationsOnChain),
+      subtitle: 'Polygon Amoy Blockchain',
       color: 'text-purple-400',
     },
   ];

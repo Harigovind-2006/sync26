@@ -1,7 +1,7 @@
 {
-  "name": "lenstrace-backend",
-  "version": "1.0.0",
-  "description": "LensTrace AI-Powered Digital Copyright Protection Platform Backend",
+  "name": "laxmanrekha-backend",
+  "version": "2.4.1",
+  "description": "Laxman Rekha AI-Powered Digital Copyright Protection Platform Backend",
   "main": "dist/server.js",
   "scripts": {
     "dev": "tsx watch src/server.ts",

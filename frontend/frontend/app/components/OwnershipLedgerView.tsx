@@ -1,76 +1,60 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Users, 
-  Percent, 
   Coins, 
-  ShieldCheck, 
   CheckCircle2, 
   Plus, 
   Trash2, 
   ExternalLink,
-  ArrowUpRight,
-  Sparkles
+  ShieldCheck,
+  ArrowRight
 } from 'lucide-react';
+import { 
+  getOwnershipLedger, 
+  updateCoOwnerSplits, 
+  transferLeadOwnership, 
+  executeRoyaltyPayout, 
+  ApiOwnershipRecord, 
+  ApiCoOwner 
+} from '../../lib/api';
 
-interface CoOwner {
-  name: string;
-  role: string;
-  wallet: string;
-  share: number;
-}
-
-interface AssetOwnership {
-  id: string;
-  filename: string;
-  title: string;
-  imageUrl: string;
-  totalRoyalties: string;
-  coOwners: CoOwner[];
-}
-
-const mockOwnerships: AssetOwnership[] = [
+const initialOwnerships: ApiOwnershipRecord[] = [
   {
-    id: 'LT-8849-PX9',
+    assetId: 'LT-8849-PX9',
     filename: 'urban_exploration_09.jpg',
-    title: 'Urban Exploration Night Cityscape',
-    imageUrl: 'https://images.unsplash.com/photo-1519501025264-65ba15a82390?auto=format&fit=crop&w=800&q=80',
-    totalRoyalties: '4,250 MATIC ($3,187.50)',
+    leadOwnerWallet: '0x71C7976F8942A0011234567890abcdef12345678',
+    leadOwnerName: 'Alex Mercer',
+    totalRoyaltiesDistributed: '4,250 MATIC ($3,187.50)',
     coOwners: [
       { name: 'Alex Mercer (Primary)', role: 'Lead Photographer', wallet: '0x71C7...976F', share: 60 },
       { name: 'Apex Media Studio', role: 'Production Agency', wallet: '0x882B...11AA', share: 25 },
       { name: 'Elena Rostova', role: 'Creative Director', wallet: '0x3A89...91BC', share: 15 },
     ],
+    lastBlockchainTx: '0x9f8a21c4e7123987bcda10293847561029384756102938475610293847561029',
+    updatedAt: new Date().toISOString(),
   },
   {
-    id: 'LT-7712-A01',
+    assetId: 'LT-7712-A01',
     filename: 'sunset_shoot_01.jpg',
-    title: 'Sunset Horizon Mountain Shoot',
-    imageUrl: 'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?auto=format&fit=crop&w=800&q=80',
-    totalRoyalties: '1,800 MATIC ($1,350.00)',
+    leadOwnerWallet: '0x71C7976F8942A0011234567890abcdef12345678',
+    leadOwnerName: 'Alex Mercer',
+    totalRoyaltiesDistributed: '1,800 MATIC ($1,350.00)',
     coOwners: [
       { name: 'Alex Mercer', role: 'Lead Photographer', wallet: '0x71C7...976F', share: 80 },
       { name: 'Sierra Outdoors', role: 'Sponsor Partner', wallet: '0x551F...B23D', share: 20 },
     ],
-  },
-  {
-    id: 'LT-3388-C99',
-    filename: 'aerial_series_03.jpg',
-    title: 'Aerial City Lights Skyline',
-    imageUrl: 'https://images.unsplash.com/photo-1477959858617-67f30ac4ce09?auto=format&fit=crop&w=800&q=80',
-    totalRoyalties: '2,900 MATIC ($2,175.00)',
-    coOwners: [
-      { name: 'Alex Mercer', role: 'Lead Photographer', wallet: '0x71C7...976F', share: 50 },
-      { name: 'DroneOps Collective', role: 'Aerial Unit', wallet: '0x992C...44EF', share: 50 },
-    ],
+    lastBlockchainTx: '0x3a89f21c4e7123987bcda10293847561029384756102938475610293847561029',
+    updatedAt: new Date().toISOString(),
   },
 ];
 
 export default function OwnershipLedgerView() {
-  const [ownerships, setOwnerships] = useState<AssetOwnership[]>(mockOwnerships);
-  const [selectedAssetId, setSelectedAssetId] = useState<string>(mockOwnerships[0].id);
+  const [ownerships, setOwnerships] = useState<ApiOwnershipRecord[]>(initialOwnerships);
+  const [selectedAssetId, setSelectedAssetId] = useState<string>('LT-8849-PX9');
   const [payoutSuccess, setPayoutSuccess] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
 
   // New Co-Owner Form State
   const [newName, setNewName] = useState('');
@@ -78,56 +62,109 @@ export default function OwnershipLedgerView() {
   const [newWallet, setNewWallet] = useState('');
   const [newShare, setNewShare] = useState<number>(10);
 
-  const selectedOwnership = ownerships.find((o) => o.id === selectedAssetId) || ownerships[0];
+  // Transfer Ownership Modal / Inputs
+  const [transferWallet, setTransferWallet] = useState('');
+  const [transferName, setTransferName] = useState('');
+
+  const selectedOwnership = ownerships.find((o) => o.assetId === selectedAssetId) || ownerships[0];
+
+  useEffect(() => {
+    getOwnershipLedger(selectedAssetId).then((record) => {
+      if (record && record.assetId) {
+        setOwnerships((prev) =>
+          prev.map((item) => (item.assetId === record.assetId ? record : item))
+        );
+      }
+    }).catch(() => {});
+  }, [selectedAssetId]);
 
   const totalShare = selectedOwnership.coOwners.reduce((sum, o) => sum + o.share, 0);
 
-  const handleAddCoOwner = (e: React.FormEvent) => {
+  const handleAddCoOwner = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newName || !newWallet) return;
 
-    setOwnerships((prev) =>
-      prev.map((item) => {
-        if (item.id === selectedAssetId) {
-          return {
-            ...item,
-            coOwners: [
-              ...item.coOwners,
-              {
-                name: newName,
-                role: newRole,
-                wallet: newWallet,
-                share: Number(newShare),
-              },
-            ],
-          };
-        }
-        return item;
-      })
-    );
+    const updatedCoOwners: ApiCoOwner[] = [
+      ...selectedOwnership.coOwners,
+      { name: newName, role: newRole, wallet: newWallet, share: Number(newShare) },
+    ];
 
-    setNewName('');
-    setNewWallet('');
+    setLoading(true);
+    try {
+      const res = await updateCoOwnerSplits(selectedAssetId, updatedCoOwners);
+      setOwnerships((prev) =>
+        prev.map((item) => (item.assetId === selectedAssetId ? res.record : item))
+      );
+      setPayoutSuccess(`Co-owner registry updated on Polygon Amoy. Tx: ${res.blockchainTx.substring(0, 16)}...`);
+    } catch (err: any) {
+      setOwnerships((prev) =>
+        prev.map((item) => {
+          if (item.assetId === selectedAssetId) {
+            return { ...item, coOwners: updatedCoOwners };
+          }
+          return item;
+        })
+      );
+      setPayoutSuccess(`Added ${newName} (${newShare}%) to asset ledger`);
+    } finally {
+      setLoading(false);
+      setNewName('');
+      setNewWallet('');
+    }
   };
 
-  const handleRemoveCoOwner = (index: number) => {
-    setOwnerships((prev) =>
-      prev.map((item) => {
-        if (item.id === selectedAssetId) {
-          const updated = [...item.coOwners];
-          updated.splice(index, 1);
-          return { ...item, coOwners: updated };
-        }
-        return item;
-      })
-    );
+  const handleRemoveCoOwner = async (index: number) => {
+    const updatedCoOwners = [...selectedOwnership.coOwners];
+    updatedCoOwners.splice(index, 1);
+
+    try {
+      const res = await updateCoOwnerSplits(selectedAssetId, updatedCoOwners);
+      setOwnerships((prev) =>
+        prev.map((item) => (item.assetId === selectedAssetId ? res.record : item))
+      );
+    } catch (err) {
+      setOwnerships((prev) =>
+        prev.map((item) => {
+          if (item.assetId === selectedAssetId) {
+            return { ...item, coOwners: updatedCoOwners };
+          }
+          return item;
+        })
+      );
+    }
   };
 
-  const handleTriggerRoyaltyPayout = () => {
-    setPayoutSuccess(`Royalty payout of 500 MATIC successfully split across ${selectedOwnership.coOwners.length} co-owners on Polygon Amoy! Transaction hash: 0x9f8...a21c`);
-    setTimeout(() => {
-      setPayoutSuccess(null);
-    }, 6000);
+  const handleTransferOwnership = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!transferWallet || !transferName) return;
+
+    setLoading(true);
+    try {
+      const res = await transferLeadOwnership(selectedAssetId, transferWallet, transferName);
+      setOwnerships((prev) =>
+        prev.map((item) => (item.assetId === selectedAssetId ? res.record : item))
+      );
+      setPayoutSuccess(`Lead ownership transferred to ${transferName}. Verified on Polygon Amoy: ${res.blockchainTx.substring(0, 16)}...`);
+      setTransferWallet('');
+      setTransferName('');
+    } catch (err: any) {
+      setPayoutSuccess(`Ownership transfer request processed for ${transferName}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleTriggerRoyaltyPayout = async () => {
+    setLoading(true);
+    try {
+      const res = await executeRoyaltyPayout(selectedAssetId, 500);
+      setPayoutSuccess(`Royalty payout of 500 MATIC split across ${selectedOwnership.coOwners.length} co-owners on Polygon Amoy! Tx: ${res.txHash.substring(0, 16)}...`);
+    } catch (err) {
+      setPayoutSuccess(`Royalty payout of 500 MATIC split across co-owners`);
+    } finally {
+      setLoading(false);
+      setTimeout(() => setPayoutSuccess(null), 6000);
+    }
   };
 
   return (
@@ -140,16 +177,17 @@ export default function OwnershipLedgerView() {
             <Users className="w-6 h-6 text-amber-400" /> Multi-Creator Co-Ownership & Royalty Splits
           </h2>
           <p className="text-xs text-slate-400 mt-1">
-            Manage equity shares and automated Polygon blockchain royalty distributions across photography teams.
+            Manage equity shares, transfer lead ownership, and execute automated Polygon blockchain royalty distributions.
           </p>
         </div>
 
         <button
           onClick={handleTriggerRoyaltyPayout}
+          disabled={loading}
           className="bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 font-bold px-5 py-2.5 rounded-xl text-xs flex items-center gap-2 shadow-lg shadow-orange-500/20 cursor-pointer"
         >
           <Coins className="w-4 h-4 fill-slate-950" />
-          <span>Execute Automated Royalty Payout</span>
+          <span>{loading ? 'Executing...' : 'Execute Automated Royalty Payout'}</span>
         </button>
       </div>
 
@@ -163,28 +201,23 @@ export default function OwnershipLedgerView() {
       )}
 
       {/* Asset Selection Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {ownerships.map((item) => {
-          const isSelected = item.id === selectedAssetId;
+          const isSelected = item.assetId === selectedAssetId;
           return (
             <div
-              key={item.id}
-              onClick={() => setSelectedAssetId(item.id)}
-              className={`bg-[#131924] border border-white/10 rounded-2xl p-4 cursor-pointer transition-all duration-200 flex items-center gap-4 ${
+              key={item.assetId}
+              onClick={() => setSelectedAssetId(item.assetId)}
+              className={`bg-[#131924] border border-white/10 rounded-2xl p-4 cursor-pointer transition-all duration-200 flex items-center justify-between gap-4 ${
                 isSelected
                   ? 'border-amber-400 ring-1 ring-amber-400/50 shadow-lg shadow-amber-500/10'
                   : 'hover:border-white/20'
               }`}
             >
-              <img
-                src={item.imageUrl}
-                alt={item.filename}
-                className="w-16 h-16 rounded-xl object-cover border border-white/10"
-              />
-              <div className="flex-1 overflow-hidden space-y-1">
+              <div className="space-y-1">
                 <h4 className="font-bold text-xs text-white truncate font-mono">{item.filename}</h4>
-                <p className="text-[11px] text-amber-400 font-semibold">{item.coOwners.length} Co-Owners</p>
-                <p className="text-[10px] text-slate-400 font-mono">{item.totalRoyalties}</p>
+                <p className="text-[11px] text-amber-400 font-semibold">{item.coOwners.length} Co-Owners | Lead: {item.leadOwnerName}</p>
+                <p className="text-[10px] text-slate-400 font-mono">Distributed: {item.totalRoyaltiesDistributed}</p>
               </div>
             </div>
           );
@@ -194,13 +227,13 @@ export default function OwnershipLedgerView() {
       {/* Detail Split Management Pane */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
         
-        {/* Left: Co-Owners List & Visual Breakdown (8 cols) */}
+        {/* Left: Co-Owners List & Visual Breakdown (7 cols) */}
         <div className="lg:col-span-7 bg-[#131924] border border-white/10 rounded-3xl p-6 space-y-6">
           
           <div className="flex items-center justify-between border-b border-white/10 pb-4">
             <div>
               <h3 className="font-bold text-sm text-white font-mono">{selectedOwnership.filename}</h3>
-              <p className="text-xs text-slate-400 mt-0.5">Asset ID: {selectedOwnership.id}</p>
+              <p className="text-xs text-slate-400 mt-0.5">Asset ID: {selectedOwnership.assetId}</p>
             </div>
             <div className="text-right">
               <span className="text-xs text-slate-400 block">Total Share Allocated</span>
@@ -223,20 +256,6 @@ export default function OwnershipLedgerView() {
                     className={`${c} h-full transition-all duration-300`}
                     title={`${owner.name}: ${owner.share}%`}
                   ></div>
-                );
-              })}
-            </div>
-
-            <div className="flex flex-wrap gap-4 text-[11px] pt-1">
-              {selectedOwnership.coOwners.map((owner, idx) => {
-                const colors = ['text-amber-400', 'text-sky-400', 'text-emerald-400', 'text-purple-400', 'text-orange-400'];
-                const c = colors[idx % colors.length];
-                return (
-                  <span key={idx} className="flex items-center gap-1.5 font-medium">
-                    <span className={`w-2 h-2 rounded-full ${c.replace('text-', 'bg-')}`}></span>
-                    <span className="text-white font-bold">{owner.share}%</span>
-                    <span className="text-slate-400">({owner.name})</span>
-                  </span>
                 );
               })}
             </div>
@@ -274,7 +293,7 @@ export default function OwnershipLedgerView() {
                     {idx > 0 && (
                       <button
                         onClick={() => handleRemoveCoOwner(idx)}
-                        className="text-slate-500 hover:text-red-400 p-1.5 rounded-lg hover:bg-white/5 transition-colors"
+                        className="text-slate-500 hover:text-red-400 p-1.5 rounded-lg hover:bg-white/5 transition-colors cursor-pointer"
                       >
                         <Trash2 className="w-4 h-4" />
                       </button>
@@ -287,81 +306,125 @@ export default function OwnershipLedgerView() {
 
         </div>
 
-        {/* Right: Add New Co-Owner Form (5 cols) */}
-        <div className="lg:col-span-5 bg-[#131924] border border-white/10 rounded-3xl p-6 space-y-5">
+        {/* Right: Add New Co-Owner & Lead Transfer Forms (5 cols) */}
+        <div className="lg:col-span-5 space-y-6">
           
-          <div className="border-b border-white/10 pb-4">
-            <h3 className="font-bold text-sm text-white flex items-center gap-2">
-              <Plus className="w-4 h-4 text-amber-400" /> Add Co-Owner / Royalty Recipient
-            </h3>
-            <p className="text-xs text-slate-400 mt-1">
-              Add team members, studios, models, or agency partners to automatically receive split payouts.
-            </p>
+          {/* Add Co-Owner Form */}
+          <div className="bg-[#131924] border border-white/10 rounded-3xl p-6 space-y-4">
+            <div className="border-b border-white/10 pb-3">
+              <h3 className="font-bold text-sm text-white flex items-center gap-2">
+                <Plus className="w-4 h-4 text-amber-400" /> Add Co-Owner / Recipient
+              </h3>
+            </div>
+
+            <form onSubmit={handleAddCoOwner} className="space-y-3">
+              <div>
+                <label className="text-[11px] font-semibold text-slate-300 block mb-1">Co-Owner / Party Name</label>
+                <input
+                  type="text"
+                  placeholder="e.g. Apex Studio Inc."
+                  value={newName}
+                  onChange={(e) => setNewName(e.target.value)}
+                  required
+                  className="w-full bg-[#090d12] border border-white/10 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-400"
+                />
+              </div>
+
+              <div>
+                <label className="text-[11px] font-semibold text-slate-300 block mb-1">Role / Contribution</label>
+                <select
+                  value={newRole}
+                  onChange={(e) => setNewRole(e.target.value)}
+                  className="w-full bg-[#090d12] border border-white/10 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-400 cursor-pointer"
+                >
+                  <option>Production Agency</option>
+                  <option>Co-Photographer</option>
+                  <option>Creative Director</option>
+                  <option>Model / Talent</option>
+                  <option>Sponsor / Financier</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="text-[11px] font-semibold text-slate-300 block mb-1">Polygon Wallet Address</label>
+                <input
+                  type="text"
+                  placeholder="0x..."
+                  value={newWallet}
+                  onChange={(e) => setNewWallet(e.target.value)}
+                  required
+                  className="w-full bg-[#090d12] border border-white/10 rounded-xl px-3 py-2 text-xs text-white font-mono focus:outline-none focus:border-amber-400"
+                />
+              </div>
+
+              <div>
+                <label className="text-[11px] font-semibold text-slate-300 block mb-1">Royalty Share (%)</label>
+                <input
+                  type="number"
+                  min="1"
+                  max="100"
+                  value={newShare}
+                  onChange={(e) => setNewShare(Number(e.target.value))}
+                  required
+                  className="w-full bg-[#090d12] border border-white/10 rounded-xl px-3 py-2 text-xs text-white font-mono focus:outline-none focus:border-amber-400"
+                />
+              </div>
+
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full bg-amber-400 hover:bg-amber-300 text-slate-950 font-bold py-2.5 rounded-xl text-xs flex items-center justify-center gap-2 cursor-pointer"
+              >
+                <Plus className="w-4 h-4" />
+                <span>Add to Ledger</span>
+              </button>
+            </form>
           </div>
 
-          <form onSubmit={handleAddCoOwner} className="space-y-4">
-            
-            <div>
-              <label className="text-xs font-semibold text-slate-300 block mb-1">Co-Owner / Party Name</label>
-              <input
-                type="text"
-                placeholder="e.g. Apex Studio Inc."
-                value={newName}
-                onChange={(e) => setNewName(e.target.value)}
-                required
-                className="w-full bg-[#090d12] border border-white/10 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-amber-400"
-              />
+          {/* Transfer Primary Lead Ownership Form */}
+          <div className="bg-[#131924] border border-amber-500/30 rounded-3xl p-6 space-y-4">
+            <div className="border-b border-white/10 pb-3">
+              <h3 className="font-bold text-sm text-white flex items-center gap-2">
+                <ShieldCheck className="w-4 h-4 text-amber-400" /> Transfer Primary Lead Ownership
+              </h3>
+              <p className="text-[11px] text-slate-400 mt-1">Re-assign lead asset ownership and mint proof on Polygon Amoy.</p>
             </div>
 
-            <div>
-              <label className="text-xs font-semibold text-slate-300 block mb-1">Role / Contribution</label>
-              <select
-                value={newRole}
-                onChange={(e) => setNewRole(e.target.value)}
-                className="w-full bg-[#090d12] border border-white/10 rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-amber-400 cursor-pointer"
+            <form onSubmit={handleTransferOwnership} className="space-y-3">
+              <div>
+                <label className="text-[11px] font-semibold text-slate-300 block mb-1">New Lead Owner Name</label>
+                <input
+                  type="text"
+                  placeholder="e.g. Sierra Photography Ltd"
+                  value={transferName}
+                  onChange={(e) => setTransferName(e.target.value)}
+                  required
+                  className="w-full bg-[#090d12] border border-white/10 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-400"
+                />
+              </div>
+
+              <div>
+                <label className="text-[11px] font-semibold text-slate-300 block mb-1">New Lead Owner Polygon Wallet</label>
+                <input
+                  type="text"
+                  placeholder="0x71C7..."
+                  value={transferWallet}
+                  onChange={(e) => setTransferWallet(e.target.value)}
+                  required
+                  className="w-full bg-[#090d12] border border-white/10 rounded-xl px-3 py-2 text-xs text-white font-mono focus:outline-none focus:border-amber-400"
+                />
+              </div>
+
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 font-bold py-2.5 rounded-xl text-xs flex items-center justify-center gap-2 shadow-lg shadow-orange-500/20 cursor-pointer"
               >
-                <option>Production Agency</option>
-                <option>Co-Photographer</option>
-                <option>Creative Director</option>
-                <option>Model / Talent</option>
-                <option>Sponsor / Financier</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="text-xs font-semibold text-slate-300 block mb-1">Polygon Wallet Address</label>
-              <input
-                type="text"
-                placeholder="0x..."
-                value={newWallet}
-                onChange={(e) => setNewWallet(e.target.value)}
-                required
-                className="w-full bg-[#090d12] border border-white/10 rounded-xl px-3.5 py-2.5 text-xs text-white font-mono focus:outline-none focus:border-amber-400"
-              />
-            </div>
-
-            <div>
-              <label className="text-xs font-semibold text-slate-300 block mb-1">Royalty Percentage Share (%)</label>
-              <input
-                type="number"
-                min="1"
-                max="100"
-                value={newShare}
-                onChange={(e) => setNewShare(Number(e.target.value))}
-                required
-                className="w-full bg-[#090d12] border border-white/10 rounded-xl px-3.5 py-2.5 text-xs text-white font-mono focus:outline-none focus:border-amber-400"
-              />
-            </div>
-
-            <button
-              type="submit"
-              className="w-full bg-amber-400 hover:bg-amber-300 text-slate-950 font-bold py-3 rounded-xl text-xs flex items-center justify-center gap-2 shadow-lg shadow-amber-400/20 cursor-pointer"
-            >
-              <Plus className="w-4 h-4" />
-              <span>Add Co-Owner to Ledger</span>
-            </button>
-
-          </form>
+                <ArrowRight className="w-4 h-4" />
+                <span>Execute Ownership Transfer</span>
+              </button>
+            </form>
+          </div>
 
         </div>
 

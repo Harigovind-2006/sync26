@@ -5,7 +5,7 @@ import { logger } from "./utils/logger";
 const PORT = config.PORT;
 
 const server = app.listen(PORT, () => {
-  logger.info(`LensTrace Backend Server running on port ${PORT}`);
+  logger.info(`Laxman Rekha API Backend running on port ${PORT}`);
 });
 
 process.on("unhandledRejection", (reason: Error) => {
