@@ -1,20 +1,13 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
-
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
+import LenisProvider from "../components/LenisProvider";
+import CustomCursor from "../components/CustomCursor";
+import { AuthProvider } from "../context/AuthContext";
+import { ImageProvider } from "../context/ImageContext";
 
 export const metadata: Metadata = {
-  title: "NEXUSMAG | Magazine on AI, Creativity, Art, and Marketing",
-  description: "Explore the world of AI, creativity, technologies, art, and marketing with NEXUSMAG. Practical tips, inspiring interviews, and trends from experts.",
+  title: "Lakxam Rekha | Cryptographic Pixel Watermarking & Deepfake Protection",
+  description: "Secure your visual assets at the pixel level. Lakxam Rekha provides spatial steganography pixel signatures and real-time crawler tracking alerts.",
 };
 
 export default function RootLayout({
@@ -23,11 +16,17 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html
-      lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
-    >
-      <body className="min-h-full flex flex-col">{children}</body>
+    <html lang="en" className="h-full antialiased">
+      <body className="min-h-full flex flex-col bg-[#020205]">
+        <AuthProvider>
+          <ImageProvider>
+            <LenisProvider>
+              <CustomCursor />
+              {children}
+            </LenisProvider>
+          </ImageProvider>
+        </AuthProvider>
+      </body>
     </html>
   );
 }
