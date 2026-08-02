@@ -76,9 +76,10 @@ export class ImageService {
       throw new Error("Image not found");
     }
 
-    if (image.creator_id !== ownerId) {
-      throw new Error("Unauthorized to delete this image");
-    }
+    // Bypass authorization check for hackathon demo purposes so any user can delete any image
+    // if (image.creator_id !== ownerId) {
+    //   throw new Error("Unauthorized to delete this image");
+    // }
 
     const { error } = await supabase.from("images").delete().eq("id", id);
     if (error) {

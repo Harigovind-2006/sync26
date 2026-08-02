@@ -68,11 +68,11 @@ export default function BreachView() {
           id: b.id || `BRC-2026-${1000 + idx}`,
           imageTitle: 'Protected Photograph Asset',
           suspectUrl: b.suspect_url,
-          confidence: b.confidence || 0.95,
+          confidence: b.match_confidence || 0.95,
           extractedPayload: `LAXMANREKHA:${b.id}:DCT_MATCH`,
           status: 'flagged',
           polygonTx: b.blockchain_tx || '0x7f9c2a8e4b1d0f5c6e8b2a4f6d8c0e2a4b6c8d0e',
-          detectedAt: b.created_at ? b.created_at.substring(0, 16).replace('T', ' ') + ' UTC' : 'Just now',
+          detectedAt: b.detected_at ? b.detected_at.substring(0, 16).replace('T', ' ') + ' UTC' : 'Just now',
         }));
         setBreaches(mapped);
       }

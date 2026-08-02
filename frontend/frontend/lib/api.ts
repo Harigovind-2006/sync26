@@ -73,9 +73,9 @@ export interface ApiBreachReport {
   image_id: string;
   license_id?: string;
   suspect_url: string;
-  confidence: number;
+  match_confidence: number;
   blockchain_tx: string;
-  created_at?: string;
+  detected_at?: string;
 }
 
 // 1. Analytics & Metrics
@@ -191,6 +191,10 @@ export async function uploadImage(file: File, title: string): Promise<ApiAssetIt
   };
 }
 
+export async function deleteImage(assetId: string): Promise<void> {
+  await apiClient.delete(`/images/${assetId}`);
+}
+
 export async function executeRoyaltyPayout(assetId: string, amountMatic: number): Promise<{ txHash: string }> {
   const res = await apiClient.post<{ success: boolean; data: { txHash: string } }>('/ownership/payout', {
     assetId,
@@ -201,9 +205,18 @@ export async function executeRoyaltyPayout(assetId: string, amountMatic: number)
 
 // 4. DMCA & Image Block Actions
 export async function fileDmcaTakedown(imageId: string, suspectUrl?: string): Promise<{ breachId: string; blockchainTx: string }> {
+  const dummyUrls = [
+    `https://instagram.com/p/unauthorized_${Math.floor(Math.random() * 1000)}`,
+    `https://pinterest.com/pin/stolen_${Math.floor(Math.random() * 1000)}`,
+    `https://twitter.com/anon/status/infringement_${Math.floor(Math.random() * 1000)}`,
+    `https://tiktok.com/@bot/video/scraping_${Math.floor(Math.random() * 1000)}`,
+    `https://unknown-blog-network.net/post_${Math.floor(Math.random() * 1000)}`,
+  ];
+  const randomUrl = dummyUrls[Math.floor(Math.random() * dummyUrls.length)];
+
   const res = await apiClient.post<{ success: boolean; data: { breachId: string; blockchainTx: string } }>('/breaches/report', {
     imageId,
-    suspect_url: suspectUrl || 'https://instagram.com/p/unauthorized',
+    suspect_url: suspectUrl || randomUrl,
   });
   return res.data.data;
 }

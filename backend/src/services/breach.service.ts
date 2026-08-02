@@ -45,7 +45,7 @@ export class BreachService {
     const { data, error } = await supabase
       .from("breach_reports")
       .select("*")
-      .order("created_at", { ascending: false });
+      .order("detected_at", { ascending: false });
 
     if (error) {
       return [];

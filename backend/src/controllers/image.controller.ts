@@ -64,7 +64,19 @@ export class ImageController {
       const id = String(req.params.id);
       await ImageService.deleteImage(id, req.user.id);
       res.status(200).json(successResponse(null, "Image deleted successfully"));
-    } catch (error) {
+    } catch (error: any) {
+      if (error.message === "Image not found") {
+        res.status(404).json(errorResponse(error.message));
+        return;
+      }
+      if (error.message === "Unauthorized to delete this image") {
+        res.status(403).json(errorResponse(error.message));
+        return;
+      }
+      if (error.message && error.message.startsWith("Failed to delete image record")) {
+        res.status(400).json(errorResponse("Cannot delete image because it has associated records (e.g., active breach alerts or licenses)."));
+        return;
+      }
       next(error);
     }
   }

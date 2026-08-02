@@ -3,13 +3,14 @@
 import React, { useState, useEffect } from 'react';
 import { AlertTriangle, ExternalLink, ShieldAlert, Zap, Copy, CheckCircle2, X } from 'lucide-react';
 import AssetInspector, { AssetItem } from './AssetInspector';
+import BreachPopup from './BreachPopup';
 import { getLiveAssets, getLiveBreaches, ApiBreachReport } from '../../lib/api';
 
 export default function AlertsView() {
   const [alertAssets, setAlertAssets] = useState<AssetItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedAsset, setSelectedAsset] = useState<AssetItem | null>(null);
-  const [takedownNotice, setTakedownNotice] = useState<string | null>(null);
+  const [takedownNotice, setTakedownNotice] = useState<{message: string, filename: string} | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -33,8 +34,8 @@ export default function AlertsView() {
                 ...a,
                 status: 'alert' as const,
                 incidentUrl: breach.suspect_url,
-                incidentTime: breach.created_at ? breach.created_at.substring(0, 16).replace('T', ' ') + ' UTC' : undefined,
-                confidence: breach.confidence ? breach.confidence * 100 : a.confidence,
+                incidentTime: breach.detected_at ? breach.detected_at.substring(0, 16).replace('T', ' ') + ' UTC' : undefined,
+                confidence: breach.match_confidence ? breach.match_confidence * 100 : a.confidence,
               };
             }
             return { ...a, status: 'alert' as const };
@@ -55,10 +56,10 @@ export default function AlertsView() {
   };
 
   const handleGenerateTakedown = (asset: AssetItem) => {
-    setTakedownNotice(
-      `DMCA Takedown Notice filed for ${asset.filename} (${asset.incidentUrl || 'instagram.com/p/CxD9_k...'}) and broadcasted to Polygon Amoy blockchain.`
-    );
-    setTimeout(() => setTakedownNotice(null), 6000);
+    setTakedownNotice({
+      message: `DMCA Takedown Notice filed for this image (${asset.incidentUrl || 'unknown-platform.net/post'}) and broadcasted to Polygon Amoy blockchain.`,
+      filename: asset.filename
+    });
   };
 
   return (
@@ -86,19 +87,6 @@ export default function AlertsView() {
             </p>
           </div>
         </div>
-
-        {/* DMCA Takedown Banner */}
-        {takedownNotice && (
-          <div className="bg-red-950/90 text-red-200 px-5 py-3.5 border border-red-500/40 rounded-2xl flex items-center justify-between text-xs font-semibold">
-            <div className="flex items-center gap-2">
-              <Zap className="w-4 h-4 text-red-400 fill-red-400 shrink-0" />
-              <span>{takedownNotice}</span>
-            </div>
-            <button onClick={() => setTakedownNotice(null)} className="text-red-300 hover:text-white shrink-0 ml-4 cursor-pointer">
-              <X className="w-4 h-4" />
-            </button>
-          </div>
-        )}
 
         {loading ? (
           <div className="text-center py-32 text-xs text-slate-500">
@@ -231,8 +219,20 @@ export default function AlertsView() {
           asset={selectedAsset}
           onClose={() => setSelectedAsset(null)}
           onGenerateTakedown={handleGenerateTakedown}
+          onDelete={(id) => {
+            setAlertAssets(prev => prev.filter(a => a.id !== id));
+            setSelectedAsset(null);
+          }}
         />
       )}
+
+      {/* Breach Alert Modal Popup */}
+      <BreachPopup
+        isOpen={!!takedownNotice}
+        onClose={() => setTakedownNotice(null)}
+        message={takedownNotice?.message || ''}
+        filename={takedownNotice?.filename || ''}
+      />
 
     </div>
   );

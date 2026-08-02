@@ -11,6 +11,7 @@ import OwnershipLedgerView from '../components/OwnershipLedgerView';
 import AlertsView from '../components/AlertsView';
 import AnalyticsView from '../components/AnalyticsView';
 import UploadModal from '../components/UploadModal';
+import BreachPopup from '../components/BreachPopup';
 import { Zap, X } from 'lucide-react';
 import { getLiveAssets } from '../../lib/api';
 
@@ -21,7 +22,7 @@ export default function DashboardPage() {
   const [assets, setAssets] = useState<any[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [isUploadOpen, setIsUploadOpen] = useState(false);
-  const [takedownNotice, setTakedownNotice] = useState<string | null>(null);
+  const [takedownNotice, setTakedownNotice] = useState<{message: string, filename: string} | null>(null);
 
   useEffect(() => {
     getLiveAssets().then(data => {
@@ -44,14 +45,14 @@ export default function DashboardPage() {
 
   const handleGenerateTakedown = (asset: AssetItem) => {
     // Update local state instantly so the UI reflects the new alert status
-    const updatedAsset = { ...asset, status: 'alert' as const, incidentUrl: 'instagram.com/p/unauthorized' };
+    const updatedAsset = { ...asset, status: 'alert' as const, incidentUrl: asset.incidentUrl || `https://instagram.com/p/unauthorized_${Math.floor(Math.random() * 1000)}` };
     setAssets(prev => prev.map(a => a.id === asset.id ? updatedAsset : a));
     setSelectedAsset(updatedAsset);
 
-    setTakedownNotice(`AI Web Crawler detected an unauthorized re-upload of ${asset.filename} on Instagram. Breach recorded on Polygon Amoy.`);
-    setTimeout(() => {
-      setTakedownNotice(null);
-    }, 6000);
+    setTakedownNotice({
+      message: `AI Web Crawler detected an unauthorized re-upload of your image on an external platform. An automated DMCA notice has been generated and the breach is recorded on the Polygon blockchain.`,
+      filename: asset.filename
+    });
   };
 
   return (
@@ -68,19 +69,6 @@ export default function DashboardPage() {
           onOpenUpload={() => setIsUploadOpen(true)}
           assetCount={assets.length}
         />
-
-        {/* DMCA Takedown Notification Banner */}
-        {takedownNotice && (
-          <div className="bg-red-950/90 text-red-200 px-8 py-3 border-b border-red-500/40 flex items-center justify-between text-xs font-semibold animate-fadeIn shrink-0">
-            <div className="flex items-center gap-2">
-              <Zap className="w-4 h-4 text-red-400 fill-red-400" />
-              <span>{takedownNotice}</span>
-            </div>
-            <button onClick={() => setTakedownNotice(null)} className="text-red-300 hover:text-white">
-              <X className="w-4 h-4" />
-            </button>
-          </div>
-        )}
 
         {/* 3. Center Workspace Content & Right Drawer */}
         <div className="flex-1 flex h-full min-h-0 overflow-hidden">
@@ -112,6 +100,10 @@ export default function DashboardPage() {
                   asset={selectedAsset}
                   onClose={() => setSelectedAsset(null)}
                   onGenerateTakedown={handleGenerateTakedown}
+                  onDelete={(id) => {
+                    setAssets(prev => prev.filter(a => a.id !== id));
+                    setSelectedAsset(null);
+                  }}
                 />
               )}
             </>
@@ -129,6 +121,14 @@ export default function DashboardPage() {
           setAssets([newAsset, ...assets]);
           setSelectedAsset(newAsset);
         }}
+      />
+
+      {/* Breach Alert Modal Popup */}
+      <BreachPopup
+        isOpen={!!takedownNotice}
+        onClose={() => setTakedownNotice(null)}
+        message={takedownNotice?.message || ''}
+        filename={takedownNotice?.filename || ''}
       />
 
     </div>

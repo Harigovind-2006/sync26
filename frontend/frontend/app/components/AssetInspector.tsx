@@ -1,8 +1,8 @@
 'use client';
 
 import React, { useState } from 'react';
-import { X, CheckCircle2, ExternalLink, ShieldAlert, Zap, Lock, Download } from 'lucide-react';
-import { fileDmcaTakedown, blockQuarantineImage } from '../../lib/api';
+import { X, CheckCircle2, ExternalLink, ShieldAlert, Zap, Lock, Download, Trash2 } from 'lucide-react';
+import { fileDmcaTakedown, blockQuarantineImage, deleteImage } from '../../lib/api';
 
 export interface AssetItem {
   id: string;
@@ -24,9 +24,10 @@ interface AssetInspectorProps {
   asset: AssetItem | null;
   onClose: () => void;
   onGenerateTakedown: (asset: AssetItem) => void;
+  onDelete?: (assetId: string) => void;
 }
 
-export default function AssetInspector({ asset, onClose, onGenerateTakedown }: AssetInspectorProps) {
+export default function AssetInspector({ asset, onClose, onGenerateTakedown, onDelete }: AssetInspectorProps) {
   const [loading, setLoading] = useState(false);
   const [blockStatus, setBlockStatus] = useState<string | null>(null);
 
@@ -65,7 +66,7 @@ export default function AssetInspector({ asset, onClose, onGenerateTakedown }: A
   const handleBlockClick = async () => {
     setLoading(true);
     try {
-      const res = await blockQuarantineImage(asset.id, 'Unauthorized AI Scraping & Copyright Theft');
+      const res = await blockQuarantineImage(asset.id, 'Unauthorized AI Scraping');
       setBlockStatus(`Image ${asset.filename} quarantined on Polygon Amoy. Tx: ${res.blockchainTx.substring(0, 16)}...`);
     } catch (err: any) {
       setBlockStatus(`Block registered for ${asset.filename}`);
@@ -80,9 +81,31 @@ export default function AssetInspector({ asset, onClose, onGenerateTakedown }: A
       {/* Header */}
       <div className="flex items-center justify-between border-b border-white/10 pb-4">
         <h3 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">ASSET PROTECTION SUMMARY</h3>
-        <button onClick={onClose} className="text-slate-400 hover:text-white p-1 rounded hover:bg-white/5 transition-colors cursor-pointer">
-          <X className="w-4 h-4" />
-        </button>
+        <div className="flex items-center gap-2">
+          {onDelete && (
+            <button
+              onClick={async () => {
+                if (confirm('Are you sure you want to delete this asset? This cannot be undone.')) {
+                  try {
+                    await deleteImage(asset.id);
+                    onDelete(asset.id);
+                  } catch (err: any) {
+                    console.error('Failed to delete asset', err);
+                    const msg = err.response?.data?.error || err.response?.data?.message || err.message || 'Failed to delete asset';
+                    alert(msg);
+                  }
+                }
+              }}
+              className="text-slate-400 hover:text-red-400 p-1 rounded hover:bg-red-500/10 transition-colors cursor-pointer"
+              title="Delete Asset"
+            >
+              <Trash2 className="w-4 h-4" />
+            </button>
+          )}
+          <button onClick={onClose} className="text-slate-400 hover:text-white p-1 rounded hover:bg-white/5 transition-colors cursor-pointer">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
       </div>
 
       {blockStatus && (
