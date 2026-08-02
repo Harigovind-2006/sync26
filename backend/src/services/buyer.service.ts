@@ -1,10 +1,16 @@
 import { supabase } from "../config/supabase";
 import { Buyer, CreateBuyerDTO } from "../models/buyer";
 
+// Use Supabase built-in auth.users via service role, with a profile table fallback.
+// The 'buyers' table stores custom profile fields (name, wallet_address, password_hash)
+// that Supabase Auth does not store natively.
+
+const TABLE = "users";
+
 export class BuyerService {
   static async createBuyer(dto: CreateBuyerDTO): Promise<Buyer> {
     const { data, error } = await supabase
-      .from("buyers")
+      .from(TABLE)
       .insert([dto])
       .select()
       .single();
@@ -18,12 +24,12 @@ export class BuyerService {
 
   static async findByEmail(email: string): Promise<Buyer | null> {
     const { data, error } = await supabase
-      .from("buyers")
+      .from(TABLE)
       .select("*")
       .eq("email", email)
-      .single();
+      .maybeSingle();                // maybeSingle() returns null if not found — no error
 
-    if (error && error.code !== "PGRST116") {
+    if (error) {
       throw new Error(`Failed to query buyer by email: ${error.message}`);
     }
 
@@ -32,12 +38,12 @@ export class BuyerService {
 
   static async findById(id: string): Promise<Buyer | null> {
     const { data, error } = await supabase
-      .from("buyers")
+      .from(TABLE)
       .select("*")
       .eq("id", id)
-      .single();
+      .maybeSingle();
 
-    if (error && error.code !== "PGRST116") {
+    if (error) {
       throw new Error(`Failed to query buyer by id: ${error.message}`);
     }
 

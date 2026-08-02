@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { Upload, X, Shield, Cpu, Zap, CheckCircle2 } from 'lucide-react';
 import { AssetItem } from './AssetInspector';
+import { uploadImage } from '../../lib/api';
 
 interface UploadModalProps {
   isOpen: boolean;
@@ -28,32 +29,22 @@ export default function UploadModal({ isOpen, onClose, onAssetAdded }: UploadMod
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!preview) return;
+    if (!file) return;
 
     setLoading(true);
 
-    setTimeout(() => {
-      setLoading(false);
-
-      const created: AssetItem = {
-        id: `LT-${Math.floor(1000 + Math.random() * 9000)}-PX${Math.floor(10 + Math.random() * 90)}`,
-        filename: filename || 'uploaded_image.jpg',
-        title: filename || 'Uploaded Image Asset',
-        imageUrl: preview,
-        status: 'watermarked',
-        protectionType: 'DWT Embedded',
-        licensee: licensee || 'Client A',
-        sha256: 'a3f8c9b2d1e0f4a7c8b9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1',
-        blockchainTx: '0x' + Array.from({ length: 16 }, () => Math.floor(Math.random() * 16).toString(16)).join(''),
-        confidence: 99.4,
-        verifiedBlock: '14,892,400',
-      };
-
+    try {
+      const created = await uploadImage(file, filename || file.name);
       onAssetAdded(created);
       onClose();
-    }, 1800);
+    } catch (error) {
+      console.error('Failed to upload image:', error);
+      alert('Failed to upload image. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (

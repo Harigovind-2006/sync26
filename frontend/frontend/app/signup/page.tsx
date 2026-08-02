@@ -3,7 +3,8 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { ShieldCheck, Mail, Lock, User, ArrowRight, Sparkles } from 'lucide-react';
+import { ShieldCheck, Mail, Lock, User, ArrowRight } from 'lucide-react';
+import { signupUser } from '../../lib/api';
 
 export default function SignupPage() {
   const router = useRouter();
@@ -11,13 +12,25 @@ export default function SignupPage() {
   const [email, setEmail] = useState('alex@photostudio.io');
   const [password, setPassword] = useState('securepass123');
   const [loading, setLoading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-  const handleSignup = (e: React.FormEvent) => {
+  const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    setTimeout(() => {
+    setErrorMsg(null);
+
+    try {
+      const res = await signupUser(name, email, password);
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('isLoggedIn', 'true');
+        if (res?.token) localStorage.setItem('token', res.token);
+      }
       router.push('/dashboard');
-    }, 600);
+    } catch (err: any) {
+      setErrorMsg(err.response?.data?.message || err.message || 'Signup failed. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -43,6 +56,12 @@ export default function SignupPage() {
           <h2 className="text-2xl font-black text-white">Protect Your Portfolio</h2>
           <p className="text-xs text-slate-400">Join Laxman Rekha to secure your photographs.</p>
         </div>
+
+        {errorMsg && (
+          <div className="bg-red-950/80 border border-red-500/40 text-red-200 p-3 rounded-xl text-xs font-semibold text-center">
+            {errorMsg}
+          </div>
+        )}
 
         <form onSubmit={handleSignup} className="space-y-4">
           

@@ -3,46 +3,50 @@
 import React, { useEffect, useState } from 'react';
 import { getDashboardMetrics, ApiAnalytics } from '../../lib/api';
 
+const DEFAULT_METRICS: ApiAnalytics = {
+  totalProtectedAssets: 0,
+  activeScansCount: 0,
+  verificationsOnChain: 0,
+  totalBreachesDetected: 0,
+  dmcaNoticesIssued: 0,
+  quarantinedBlockedImages: 0,
+  totalRoyaltiesEarnedMatic: 0,
+  totalRoyaltiesEarnedUsd: 0,
+};
+
 export default function TopMetricsRow() {
-  const [metricsData, setMetricsData] = useState<ApiAnalytics>({
-    totalProtectedAssets: 48,
-    activeScansCount: 1420,
-    verificationsOnChain: 48,
-    totalBreachesDetected: 12,
-    dmcaNoticesIssued: 8,
-    quarantinedBlockedImages: 3,
-    totalRoyaltiesEarnedMatic: 4250,
-    totalRoyaltiesEarnedUsd: 3187.5,
-  });
+  const [metricsData, setMetricsData] = useState<ApiAnalytics>(DEFAULT_METRICS);
 
   useEffect(() => {
     getDashboardMetrics().then((data) => {
       if (data) setMetricsData(data);
-    });
+    }).catch(() => {});
   }, []);
+
+  const safe = (val: number | undefined) => (val ?? 0);
 
   const metrics = [
     {
       title: 'PROTECTED ASSETS',
-      value: String(metricsData.totalProtectedAssets),
+      value: String(safe(metricsData?.totalProtectedAssets)),
       subtitle: 'DCT + Polygon Verified',
       color: 'text-[#00e5a3]',
     },
     {
       title: 'ACTIVE SCANS',
-      value: metricsData.activeScansCount.toLocaleString(),
+      value: safe(metricsData?.activeScansCount).toLocaleString(),
       subtitle: 'AI Crawlers Monitoring',
       color: 'text-sky-400',
     },
     {
       title: 'BREACH ALERTS',
-      value: String(metricsData.totalBreachesDetected),
-      subtitle: `${metricsData.dmcaNoticesIssued} DMCA Notices Issued`,
+      value: String(safe(metricsData?.totalBreachesDetected)),
+      subtitle: `${safe(metricsData?.dmcaNoticesIssued)} DMCA Notices Issued`,
       color: 'text-red-400',
     },
     {
       title: 'ON-CHAIN RECORDS',
-      value: String(metricsData.verificationsOnChain),
+      value: String(safe(metricsData?.verificationsOnChain)),
       subtitle: 'Polygon Amoy Blockchain',
       color: 'text-purple-400',
     },

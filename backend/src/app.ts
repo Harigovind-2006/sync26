@@ -14,7 +14,13 @@ import { errorMiddleware } from "./middleware/error.middleware";
 
 const app: Application = express();
 
-app.use(cors());
+// Configure CORS for Frontend Axios Requests
+app.use(cors({
+  origin: "*",
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
+  allowedHeaders: ["Content-Type", "Authorization", "x-application-name"],
+}));
+
 app.use(express.json({ limit: "50mb" }));
 app.use(express.urlencoded({ extended: true, limit: "50mb" }));
 

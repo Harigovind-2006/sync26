@@ -6,6 +6,7 @@ import { AssetItem } from './AssetInspector';
 import { getLiveAssets } from '../../lib/api';
 
 interface AssetGridProps {
+  assets: AssetItem[];
   selectedAsset: AssetItem | null;
   onSelectAsset: (asset: AssetItem) => void;
   searchQuery: string;
@@ -95,16 +96,9 @@ export const mockAssets: AssetItem[] = [
   },
 ];
 
-export default function AssetGrid({ selectedAsset, onSelectAsset, searchQuery, setSearchQuery }: AssetGridProps) {
-  const [assets, setAssets] = useState<AssetItem[]>(mockAssets);
+export default function AssetGrid({ assets, selectedAsset, onSelectAsset, searchQuery, setSearchQuery }: AssetGridProps) {
   const [statusFilter, setStatusFilter] = useState('All Status');
   const [protectionFilter, setProtectionFilter] = useState('Protection Type');
-
-  useEffect(() => {
-    getLiveAssets().then((data) => {
-      if (data && data.length > 0) setAssets(data);
-    });
-  }, []);
 
   const filtered = assets.filter((a) => {
     const matchesSearch = 

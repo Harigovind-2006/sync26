@@ -1,11 +1,12 @@
 export interface BreachReport {
   id: string;
-  license_id: string;
+  image_id: string;
   suspect_url: string;
-  confidence: number;
-  extracted_payload: string;
+  detection_source?: string | null;
+  match_confidence?: number | null;
+  status?: string | null;
   blockchain_tx?: string | null;
-  created_at?: string;
+  detected_at?: string;
 }
 
-export type CreateBreachReportDTO = Omit<BreachReport, "id" | "created_at">;
+export type CreateBreachReportDTO = Omit<BreachReport, "id" | "detected_at">;

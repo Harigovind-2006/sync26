@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { 
@@ -13,6 +13,7 @@ import {
   Home,
   LogOut
 } from 'lucide-react';
+import { getLiveBreaches, getStoredUser, logoutUser } from '../../lib/api';
 
 interface SidebarProps {
   activeTab: string;
@@ -21,20 +22,38 @@ interface SidebarProps {
 
 export default function Sidebar({ activeTab, setActiveTab }: SidebarProps) {
   const router = useRouter();
+  const [alertCount, setAlertCount] = useState(0);
+  const [user, setUser] = useState<any>(null);
+
+  useEffect(() => {
+    setUser(getStoredUser());
+    getLiveBreaches().then((data) => {
+      if (data) setAlertCount(data.length);
+    }).catch(() => {});
+  }, []);
 
   const menuItems = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { id: 'ledger', label: 'Ownership Ledger', icon: BookOpenCheck },
-    { id: 'alerts', label: 'Detection Alerts', icon: BellRing, badge: '2' },
+    { id: 'alerts', label: 'Detection Alerts', icon: BellRing, badge: alertCount > 0 ? String(alertCount) : undefined },
     { id: 'analytics', label: 'Analytics', icon: BarChart3 },
   ];
 
   const handleSignOut = () => {
     if (typeof window !== 'undefined') {
+      logoutUser();
       localStorage.removeItem('isLoggedIn');
       router.push('/login');
     }
   };
+
+  const userName = user?.name || 'Creator';
+  const initials = userName
+    .split(' ')
+    .map((n: string) => n[0])
+    .join('')
+    .substring(0, 2)
+    .toUpperCase();
 
   return (
     <aside className="w-64 bg-[#090d12] border-r border-white/10 flex flex-col justify-between shrink-0 select-none h-full overflow-y-auto">
@@ -100,11 +119,11 @@ export default function Sidebar({ activeTab, setActiveTab }: SidebarProps) {
         <div className="flex items-center justify-between px-2 py-1">
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 rounded-full bg-amber-500/20 text-amber-300 font-bold text-xs flex items-center justify-center border border-amber-500/30">
-              AM
+              {initials}
             </div>
             <div className="text-left">
-              <p className="text-xs font-bold text-white leading-none">Alex Mercer</p>
-              <p className="text-[10px] text-slate-400 font-medium mt-1">Pro Creator Plan</p>
+              <p className="text-xs font-bold text-white leading-none truncate max-w-[100px]">{userName}</p>
+              <p className="text-[10px] text-slate-400 font-medium mt-1">Creator</p>
             </div>
           </div>
 

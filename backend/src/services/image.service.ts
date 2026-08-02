@@ -19,12 +19,12 @@ export class ImageService {
     const txHash = await BlockchainService.registerImage(imageId, sha256);
 
     const newImage: CreateImageDTO = {
-      owner_id: ownerId,
-      title,
+      creator_id: ownerId,
+      filename: filename,
       original_url: originalUrl,
       watermarked_url: null,
+      status: 'watermarked',
       sha256,
-      phash: null,
       blockchain_tx: txHash,
     };
 
@@ -35,6 +35,7 @@ export class ImageService {
       .single();
 
     if (error) {
+      console.error("Supabase insert error for images table:", error);
       // Return memory object if Supabase PostgreSQL table hasn't been migrated yet
       return { id: imageId, ...newImage };
     }
@@ -75,7 +76,7 @@ export class ImageService {
       throw new Error("Image not found");
     }
 
-    if (image.owner_id !== ownerId) {
+    if (image.creator_id !== ownerId) {
       throw new Error("Unauthorized to delete this image");
     }
 

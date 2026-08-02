@@ -5,11 +5,12 @@ import { upload } from "../middleware/upload.middleware";
 
 const router = Router();
 
-router.use(authenticateJwt);
-
-router.post("/upload", upload.single("image"), ImageController.upload);
+// Public read routes — no auth required for dashboard/analytics views
 router.get("/", ImageController.getAll);
 router.get("/:id", ImageController.getById);
-router.delete("/:id", ImageController.delete);
+
+// Protected write routes — require JWT
+router.post("/upload", authenticateJwt, upload.single("image"), ImageController.upload);
+router.delete("/:id", authenticateJwt, ImageController.delete);
 
 export default router;

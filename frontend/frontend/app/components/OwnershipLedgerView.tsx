@@ -9,52 +9,26 @@ import {
   Trash2, 
   ExternalLink,
   ShieldCheck,
-  ArrowRight
+  ArrowRight,
+  Loader2
 } from 'lucide-react';
 import { 
   getOwnershipLedger, 
   updateCoOwnerSplits, 
   transferLeadOwnership, 
   executeRoyaltyPayout, 
+  getLiveAssets,
   ApiOwnershipRecord, 
   ApiCoOwner 
 } from '../../lib/api';
 
-const initialOwnerships: ApiOwnershipRecord[] = [
-  {
-    assetId: 'LT-8849-PX9',
-    filename: 'urban_exploration_09.jpg',
-    leadOwnerWallet: '0x71C7976F8942A0011234567890abcdef12345678',
-    leadOwnerName: 'Alex Mercer',
-    totalRoyaltiesDistributed: '4,250 MATIC ($3,187.50)',
-    coOwners: [
-      { name: 'Alex Mercer (Primary)', role: 'Lead Photographer', wallet: '0x71C7...976F', share: 60 },
-      { name: 'Apex Media Studio', role: 'Production Agency', wallet: '0x882B...11AA', share: 25 },
-      { name: 'Elena Rostova', role: 'Creative Director', wallet: '0x3A89...91BC', share: 15 },
-    ],
-    lastBlockchainTx: '0x9f8a21c4e7123987bcda10293847561029384756102938475610293847561029',
-    updatedAt: new Date().toISOString(),
-  },
-  {
-    assetId: 'LT-7712-A01',
-    filename: 'sunset_shoot_01.jpg',
-    leadOwnerWallet: '0x71C7976F8942A0011234567890abcdef12345678',
-    leadOwnerName: 'Alex Mercer',
-    totalRoyaltiesDistributed: '1,800 MATIC ($1,350.00)',
-    coOwners: [
-      { name: 'Alex Mercer', role: 'Lead Photographer', wallet: '0x71C7...976F', share: 80 },
-      { name: 'Sierra Outdoors', role: 'Sponsor Partner', wallet: '0x551F...B23D', share: 20 },
-    ],
-    lastBlockchainTx: '0x3a89f21c4e7123987bcda10293847561029384756102938475610293847561029',
-    updatedAt: new Date().toISOString(),
-  },
-];
-
 export default function OwnershipLedgerView() {
-  const [ownerships, setOwnerships] = useState<ApiOwnershipRecord[]>(initialOwnerships);
-  const [selectedAssetId, setSelectedAssetId] = useState<string>('LT-8849-PX9');
+  const [ownerships, setOwnerships] = useState<ApiOwnershipRecord[]>([]);
+  const [assets, setAssets] = useState<any[]>([]);
+  const [selectedAssetId, setSelectedAssetId] = useState<string>('');
   const [payoutSuccess, setPayoutSuccess] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [actionLoading, setActionLoading] = useState(false);
 
   // New Co-Owner Form State
   const [newName, setNewName] = useState('');
@@ -66,17 +40,63 @@ export default function OwnershipLedgerView() {
   const [transferWallet, setTransferWallet] = useState('');
   const [transferName, setTransferName] = useState('');
 
-  const selectedOwnership = ownerships.find((o) => o.assetId === selectedAssetId) || ownerships[0];
-
   useEffect(() => {
-    getOwnershipLedger(selectedAssetId).then((record) => {
-      if (record && record.assetId) {
-        setOwnerships((prev) =>
-          prev.map((item) => (item.assetId === record.assetId ? record : item))
-        );
+    getLiveAssets().then((data) => {
+      if (data) {
+        setAssets(data);
+        if (data.length > 0 && !selectedAssetId) {
+          setSelectedAssetId(data[0].id);
+        }
       }
     }).catch(() => {});
   }, [selectedAssetId]);
+
+  useEffect(() => {
+    let isMounted = true;
+    
+    if (!selectedAssetId) {
+      setLoading(false);
+      return;
+    }
+
+    setLoading(true);
+
+    getOwnershipLedger(selectedAssetId)
+      .then((record) => {
+        if (!isMounted) return;
+        if (record && record.assetId) {
+          setOwnerships((prev) => {
+            const exists = prev.some((item) => item.assetId === record.assetId);
+            if (exists) {
+              return prev.map((item) => (item.assetId === record.assetId ? record : item));
+            }
+            return [record, ...prev];
+          });
+        }
+      })
+      .catch((err) => {
+        console.warn('Backend ledger error:', err);
+      })
+      .finally(() => {
+        if (isMounted) setLoading(false);
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [selectedAssetId]);
+
+  const selectedOwnership: ApiOwnershipRecord = ownerships.find((o) => o.assetId === selectedAssetId) || {
+    assetId: selectedAssetId,
+    filename: `asset_${selectedAssetId.toLowerCase()}.jpg`,
+    leadOwnerWallet: '',
+    leadOwnerName: '—',
+    totalRoyaltiesDistributed: '0 MATIC ($0.00)',
+    coOwners: [],
+    lastBlockchainTx: '',
+    updatedAt: new Date().toISOString(),
+  };
+
 
   const totalShare = selectedOwnership.coOwners.reduce((sum, o) => sum + o.share, 0);
 
@@ -89,7 +109,7 @@ export default function OwnershipLedgerView() {
       { name: newName, role: newRole, wallet: newWallet, share: Number(newShare) },
     ];
 
-    setLoading(true);
+    setActionLoading(true);
     try {
       const res = await updateCoOwnerSplits(selectedAssetId, updatedCoOwners);
       setOwnerships((prev) =>
@@ -107,7 +127,7 @@ export default function OwnershipLedgerView() {
       );
       setPayoutSuccess(`Added ${newName} (${newShare}%) to asset ledger`);
     } finally {
-      setLoading(false);
+      setActionLoading(false);
       setNewName('');
       setNewWallet('');
     }
@@ -117,6 +137,7 @@ export default function OwnershipLedgerView() {
     const updatedCoOwners = [...selectedOwnership.coOwners];
     updatedCoOwners.splice(index, 1);
 
+    setActionLoading(true);
     try {
       const res = await updateCoOwnerSplits(selectedAssetId, updatedCoOwners);
       setOwnerships((prev) =>
@@ -131,6 +152,8 @@ export default function OwnershipLedgerView() {
           return item;
         })
       );
+    } finally {
+      setActionLoading(false);
     }
   };
 
@@ -138,7 +161,7 @@ export default function OwnershipLedgerView() {
     e.preventDefault();
     if (!transferWallet || !transferName) return;
 
-    setLoading(true);
+    setActionLoading(true);
     try {
       const res = await transferLeadOwnership(selectedAssetId, transferWallet, transferName);
       setOwnerships((prev) =>
@@ -150,19 +173,19 @@ export default function OwnershipLedgerView() {
     } catch (err: any) {
       setPayoutSuccess(`Ownership transfer request processed for ${transferName}`);
     } finally {
-      setLoading(false);
+      setActionLoading(false);
     }
   };
 
   const handleTriggerRoyaltyPayout = async () => {
-    setLoading(true);
+    setActionLoading(true);
     try {
       const res = await executeRoyaltyPayout(selectedAssetId, 500);
       setPayoutSuccess(`Royalty payout of 500 MATIC split across ${selectedOwnership.coOwners.length} co-owners on Polygon Amoy! Tx: ${res.txHash.substring(0, 16)}...`);
     } catch (err) {
       setPayoutSuccess(`Royalty payout of 500 MATIC split across co-owners`);
     } finally {
-      setLoading(false);
+      setActionLoading(false);
       setTimeout(() => setPayoutSuccess(null), 6000);
     }
   };
@@ -183,16 +206,16 @@ export default function OwnershipLedgerView() {
 
         <button
           onClick={handleTriggerRoyaltyPayout}
-          disabled={loading}
+          disabled={actionLoading}
           className="bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 font-bold px-5 py-2.5 rounded-xl text-xs flex items-center gap-2 shadow-lg shadow-orange-500/20 cursor-pointer"
         >
           <Coins className="w-4 h-4 fill-slate-950" />
-          <span>{loading ? 'Executing...' : 'Execute Automated Royalty Payout'}</span>
+          <span>{actionLoading ? 'Executing...' : 'Execute Automated Royalty Payout'}</span>
         </button>
       </div>
 
       {payoutSuccess && (
-        <div className="bg-emerald-950/90 text-emerald-200 px-6 py-3 rounded-2xl border border-emerald-500/40 text-xs font-semibold flex items-center justify-between">
+        <div className="bg-emerald-950/90 text-emerald-200 px-6 py-3 rounded-2xl border border-emerald-500/40 text-xs font-semibold flex items-center justify-between animate-fadeIn">
           <div className="flex items-center gap-2">
             <CheckCircle2 className="w-4 h-4 text-emerald-400" />
             <span>{payoutSuccess}</span>
@@ -202,26 +225,35 @@ export default function OwnershipLedgerView() {
 
       {/* Asset Selection Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {ownerships.map((item) => {
-          const isSelected = item.assetId === selectedAssetId;
-          return (
-            <div
-              key={item.assetId}
-              onClick={() => setSelectedAssetId(item.assetId)}
-              className={`bg-[#131924] border border-white/10 rounded-2xl p-4 cursor-pointer transition-all duration-200 flex items-center justify-between gap-4 ${
-                isSelected
-                  ? 'border-amber-400 ring-1 ring-amber-400/50 shadow-lg shadow-amber-500/10'
-                  : 'hover:border-white/20'
-              }`}
-            >
-              <div className="space-y-1">
-                <h4 className="font-bold text-xs text-white truncate font-mono">{item.filename}</h4>
-                <p className="text-[11px] text-amber-400 font-semibold">{item.coOwners.length} Co-Owners | Lead: {item.leadOwnerName}</p>
-                <p className="text-[10px] text-slate-400 font-mono">Distributed: {item.totalRoyaltiesDistributed}</p>
+        {assets.length === 0 ? (
+          <div className="col-span-full p-6 bg-[#131924] border border-white/10 rounded-2xl flex flex-col items-center justify-center text-center">
+            <p className="text-slate-400 text-sm font-medium">No protected assets found.</p>
+            <p className="text-xs text-slate-500 mt-1">Upload an image to start managing ownership splits.</p>
+          </div>
+        ) : (
+          assets.map((asset) => {
+            const isSelected = asset.id === selectedAssetId;
+            return (
+              <div
+                key={asset.id}
+                onClick={() => setSelectedAssetId(asset.id)}
+                className={`bg-[#131924] border border-white/10 rounded-2xl p-4 cursor-pointer transition-all duration-200 flex items-center justify-between gap-4 ${
+                  isSelected
+                    ? 'border-amber-400 ring-1 ring-amber-400/50 shadow-lg shadow-amber-500/10'
+                    : 'hover:border-white/20'
+                }`}
+              >
+                <div className="space-y-1">
+                  <h4 className="font-bold text-xs text-white truncate font-mono">Asset #{asset.id.split('-').shift() || asset.id}</h4>
+                  <p className="text-[11px] text-slate-300 font-medium truncate">{asset.filename}</p>
+                  <p className="text-[10px] text-amber-400 font-semibold mt-2">
+                    {selectedOwnership.coOwners.length} Co-Owners | Lead: {selectedOwnership.leadOwnerName}
+                  </p>
+                </div>
               </div>
-            </div>
-          );
-        })}
+            );
+          })
+        )}
       </div>
 
       {/* Detail Split Management Pane */}
@@ -372,7 +404,7 @@ export default function OwnershipLedgerView() {
 
               <button
                 type="submit"
-                disabled={loading}
+                disabled={actionLoading}
                 className="w-full bg-amber-400 hover:bg-amber-300 text-slate-950 font-bold py-2.5 rounded-xl text-xs flex items-center justify-center gap-2 cursor-pointer"
               >
                 <Plus className="w-4 h-4" />
@@ -417,7 +449,7 @@ export default function OwnershipLedgerView() {
 
               <button
                 type="submit"
-                disabled={loading}
+                disabled={actionLoading}
                 className="w-full bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 font-bold py-2.5 rounded-xl text-xs flex items-center justify-center gap-2 shadow-lg shadow-orange-500/20 cursor-pointer"
               >
                 <ArrowRight className="w-4 h-4" />

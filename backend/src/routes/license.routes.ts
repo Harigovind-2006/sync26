@@ -4,10 +4,11 @@ import { authenticateJwt } from "../middleware/auth.middleware";
 
 const router = Router();
 
-router.use(authenticateJwt);
-
-router.post("/", LicenseController.create);
+// Public read routes
 router.get("/", LicenseController.getAll);
 router.get("/:id", LicenseController.getById);
+
+// Protected write routes
+router.post("/", authenticateJwt, LicenseController.create);
 
 export default router;

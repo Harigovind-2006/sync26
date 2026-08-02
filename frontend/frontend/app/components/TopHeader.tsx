@@ -15,7 +15,7 @@ export default function TopHeader({ onOpenUpload, assetCount }: TopHeaderProps) 
       {/* Page Title & Subtitle */}
       <div>
         <h1 className="text-2xl font-black text-white tracking-tight">Manage Assets</h1>
-        <p className="text-xs text-slate-400 font-medium mt-0.5">{assetCount} assets · 2 protected</p>
+        <p className="text-xs text-slate-400 font-medium mt-0.5">{assetCount} assets · {assetCount} protected</p>
       </div>
 
       {/* Primary Action Button */}

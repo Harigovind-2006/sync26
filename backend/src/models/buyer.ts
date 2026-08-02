@@ -1,8 +1,9 @@
 export interface Buyer {
   id: string;
-  name: string;
   email: string;
+  name: string;
   password_hash: string;
+  role?: string | null;
   wallet_address?: string | null;
   created_at?: string;
 }

@@ -5,19 +5,19 @@ import { v4 as uuidv4 } from "uuid";
 
 export class BreachService {
   static async createReport(
-    licenseId: string | undefined,
+    imageId: string,
     suspectUrl: string,
-    confidence: number = 0.95,
-    extractedPayload: string = ""
+    confidence: number = 0.95
   ): Promise<BreachReport> {
     const breachId = uuidv4();
     const txHash = await BlockchainService.flagBreach(breachId, suspectUrl);
 
     const dto: CreateBreachReportDTO = {
-      license_id: licenseId || uuidv4(),
+      image_id: imageId,
       suspect_url: suspectUrl,
-      confidence,
-      extracted_payload: extractedPayload,
+      match_confidence: confidence,
+      detection_source: 'Manual AI Scan',
+      status: 'flagged',
       blockchain_tx: txHash,
     };
 
@@ -28,7 +28,14 @@ export class BreachService {
       .single();
 
     if (error) {
+      console.error("Supabase insert error for breach_reports table:", error);
       return { id: breachId, ...dto };
+    }
+
+    // Automatically update the parent image's status to 'alert'
+    const { error: updateError } = await supabase.from("images").update({ status: 'alert' }).eq('id', imageId);
+    if (updateError) {
+      console.error("Supabase update error for images table:", updateError);
     }
 
     return data as BreachReport;

@@ -1,12 +1,12 @@
 export interface ImageModel {
   id: string;
-  owner_id: string;
-  title: string;
-  original_url: string;
+  creator_id: string;
+  filename: string;
+  original_url?: string | null;
   watermarked_url?: string | null;
-  sha256: string;
-  phash?: string | null;
+  sha256?: string | null;
   blockchain_tx?: string | null;
+  status?: string;
   created_at?: string;
 }
 

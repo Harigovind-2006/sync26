@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { X, CheckCircle2, ExternalLink, ShieldAlert, Zap, Lock } from 'lucide-react';
+import { X, CheckCircle2, ExternalLink, ShieldAlert, Zap, Lock, Download } from 'lucide-react';
 import { fileDmcaTakedown, blockQuarantineImage } from '../../lib/api';
 
 export interface AssetItem {
@@ -31,6 +31,24 @@ export default function AssetInspector({ asset, onClose, onGenerateTakedown }: A
   const [blockStatus, setBlockStatus] = useState<string | null>(null);
 
   if (!asset) return null;
+
+  const handleDownload = async () => {
+    try {
+      const response = await fetch(asset.imageUrl);
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `watermarked_${asset.filename}`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error("Download failed, opening in new tab", err);
+      window.open(asset.imageUrl, '_blank');
+    }
+  };
 
   const handleDmcaClick = async () => {
     setLoading(true);
@@ -128,16 +146,34 @@ export default function AssetInspector({ asset, onClose, onGenerateTakedown }: A
         </div>
       )}
 
-      {/* Action Buttons: File DMCA Takedown & Quarantine Block */}
+      {/* Action Buttons */}
       <div className="pt-4 border-t border-white/10 space-y-2.5">
         <button
-          onClick={handleDmcaClick}
-          disabled={loading}
-          className="bg-[#ff4d4d] text-white font-bold w-full py-3.5 rounded-xl text-xs flex items-center justify-center gap-2 shadow-lg shadow-red-500/20 hover:bg-[#ff6666] transition-all cursor-pointer"
+          onClick={handleDownload}
+          className="bg-sky-500 hover:bg-sky-400 text-white font-bold w-full py-3.5 rounded-xl text-xs flex items-center justify-center gap-2 shadow-lg shadow-sky-500/20 transition-all cursor-pointer"
         >
-          <Zap className="w-4 h-4 fill-white" />
-          <span>{loading ? 'Processing...' : 'File DMCA Takedown'}</span>
+          <Download className="w-4 h-4" />
+          <span>Download Protected Image</span>
         </button>
+
+        {asset.status !== 'alert' ? (
+          <button
+            onClick={handleDmcaClick}
+            disabled={loading}
+            className="bg-amber-500 hover:bg-amber-400 text-white font-bold w-full py-3.5 rounded-xl text-xs flex items-center justify-center gap-2 shadow-lg shadow-amber-500/20 transition-all cursor-pointer"
+          >
+            <ShieldAlert className="w-4 h-4" />
+            <span>{loading ? 'Scanning...' : 'Simulate Web Scan (Detect Breach)'}</span>
+          </button>
+        ) : (
+          <button
+            disabled={true}
+            className="bg-[#ff4d4d] text-white font-bold w-full py-3.5 rounded-xl text-xs flex items-center justify-center gap-2 shadow-lg shadow-red-500/20 opacity-70 cursor-not-allowed"
+          >
+            <Zap className="w-4 h-4 fill-white" />
+            <span>DMCA Takedown Issued</span>
+          </button>
+        )}
 
         <button
           onClick={handleBlockClick}

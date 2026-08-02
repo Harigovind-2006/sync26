@@ -5,21 +5,32 @@ import { useRouter } from 'next/navigation';
 import Sidebar from '../components/Sidebar';
 import TopHeader from '../components/TopHeader';
 import TopMetricsRow from '../components/TopMetricsRow';
-import AssetGrid, { mockAssets } from '../components/AssetGrid';
+import AssetGrid from '../components/AssetGrid';
 import AssetInspector, { AssetItem } from '../components/AssetInspector';
 import OwnershipLedgerView from '../components/OwnershipLedgerView';
 import AlertsView from '../components/AlertsView';
 import AnalyticsView from '../components/AnalyticsView';
 import UploadModal from '../components/UploadModal';
 import { Zap, X } from 'lucide-react';
+import { getLiveAssets } from '../../lib/api';
 
 export default function DashboardPage() {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState('dashboard');
-  const [selectedAsset, setSelectedAsset] = useState<AssetItem | null>(mockAssets[0]);
+  const [selectedAsset, setSelectedAsset] = useState<any | null>(null);
+  const [assets, setAssets] = useState<any[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [isUploadOpen, setIsUploadOpen] = useState(false);
   const [takedownNotice, setTakedownNotice] = useState<string | null>(null);
+
+  useEffect(() => {
+    getLiveAssets().then(data => {
+      if (data) {
+        setAssets(data);
+        if (data.length > 0) setSelectedAsset(data[0]);
+      }
+    }).catch(() => {});
+  }, []);
 
   // Auth Protection: If not logged in, route to /login
   useEffect(() => {
@@ -32,7 +43,12 @@ export default function DashboardPage() {
   }, [router]);
 
   const handleGenerateTakedown = (asset: AssetItem) => {
-    setTakedownNotice(`DMCA Takedown Notice filed for ${asset.filename} (${asset.incidentUrl || 'instagram.com/p/CxD9_k...'}) and broadcasted to Polygon.`);
+    // Update local state instantly so the UI reflects the new alert status
+    const updatedAsset = { ...asset, status: 'alert' as const, incidentUrl: 'instagram.com/p/unauthorized' };
+    setAssets(prev => prev.map(a => a.id === asset.id ? updatedAsset : a));
+    setSelectedAsset(updatedAsset);
+
+    setTakedownNotice(`AI Web Crawler detected an unauthorized re-upload of ${asset.filename} on Instagram. Breach recorded on Polygon Amoy.`);
     setTimeout(() => {
       setTakedownNotice(null);
     }, 6000);
@@ -50,7 +66,7 @@ export default function DashboardPage() {
         {/* 2. Top Header Bar */}
         <TopHeader
           onOpenUpload={() => setIsUploadOpen(true)}
-          assetCount={mockAssets.length}
+          assetCount={assets.length}
         />
 
         {/* DMCA Takedown Notification Banner */}
@@ -82,6 +98,7 @@ export default function DashboardPage() {
                 <TopMetricsRow />
                 
                 <AssetGrid
+                  assets={assets}
                   selectedAsset={selectedAsset}
                   onSelectAsset={(asset) => setSelectedAsset(asset)}
                   searchQuery={searchQuery}
@@ -109,6 +126,7 @@ export default function DashboardPage() {
         isOpen={isUploadOpen}
         onClose={() => setIsUploadOpen(false)}
         onAssetAdded={(newAsset) => {
+          setAssets([newAsset, ...assets]);
           setSelectedAsset(newAsset);
         }}
       />

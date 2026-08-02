@@ -9,10 +9,9 @@ export class BreachController {
     try {
       const validated = createBreachReportSchema.parse(req.body);
       const report = await BreachService.createReport(
-        validated.license_id,
+        validated.imageId,
         validated.suspect_url,
-        validated.confidence,
-        ""
+        validated.confidence
       );
 
       res.status(201).json(successResponse(report, "Breach report filed and recorded on Polygon Amoy blockchain"));

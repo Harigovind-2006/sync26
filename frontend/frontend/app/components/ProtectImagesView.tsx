@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { getLiveAssets, ApiAssetItem } from '../../lib/api';
 import { AssetItem } from './AssetInspector';
 import { AlertTriangle, ExternalLink, ShieldCheck, Lock, Clock, Sparkles } from 'lucide-react';
 
@@ -10,67 +11,17 @@ interface ProtectImagesViewProps {
   searchQuery: string;
 }
 
-const mockAssets: AssetItem[] = [
-  {
-    id: 'LT-8849-PX9',
-    filename: 'urban_exploration_09.jpg',
-    title: 'Urban Exploration Night Cityscape',
-    imageUrl: 'https://images.unsplash.com/photo-1519501025264-65ba15a82390?auto=format&fit=crop&w=800&q=80',
-    status: 'alert',
-    protectionType: 'DWT Embedded',
-    licensee: 'Client X (#BUYER_8942)',
-    sha256: '7f9c2a8e4b1d0f5c6e8b2a4f6d8c0e2a4b6c8d0e2f4a6b8c0d2e4f6a8b0c2d4e',
-    blockchainTx: '0x7f...3a89e92bc',
-    confidence: 98.4,
-    incidentUrl: 'instagram.com/p/B9x890a...',
-    incidentTime: '2 hours ago',
-    verifiedBlock: '14,892,102',
-  },
-  {
-    id: 'LT-7712-A01',
-    filename: 'sunset_shoot_01.jpg',
-    title: 'Sunset Horizon Mountain Shoot',
-    imageUrl: 'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?auto=format&fit=crop&w=800&q=80',
-    status: 'watermarked',
-    protectionType: 'DWT Embedded',
-    licensee: 'Client A',
-    sha256: '9a8b7c6d5e4f3a2b1c0d9e8f7a6b5c4d3e2f1a0b9c8d7e6f5a4b3c2d1e0f9a8b',
-    blockchainTx: '0x3a89f...91bc',
-    confidence: 99.1,
-    verifiedBlock: '14,890,442',
-  },
-  {
-    id: 'LT-5509-B44',
-    filename: 'studio_session_44.jpg',
-    title: 'Fashion Studio Portrait Session',
-    imageUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=800&q=80',
-    status: 'pending',
-    protectionType: 'Not Protected',
-    licensee: 'Unassigned',
-    sha256: '1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1a2b',
-    blockchainTx: '0x1120a...55f2',
-    confidence: 0,
-    verifiedBlock: '14,888,100',
-  },
-  {
-    id: 'LT-3388-C99',
-    filename: 'coastal_waves_12.jpg',
-    title: 'Luminous Coastal Ocean Waves',
-    imageUrl: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=800&q=80',
-    status: 'watermarked',
-    protectionType: 'DWT Embedded',
-    licensee: 'Client B',
-    sha256: '4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c',
-    blockchainTx: '0x551f0...b23d',
-    confidence: 97.8,
-    verifiedBlock: '14,885,020',
-  },
-];
-
 export default function ProtectImagesView({ selectedAsset, onSelectAsset, searchQuery }: ProtectImagesViewProps) {
   const [filterPill, setFilterPill] = useState<'all' | 'watermarked' | 'alerts' | 'polygon'>('all');
+  const [assets, setAssets] = useState<ApiAssetItem[]>([]);
 
-  const filteredAssets = mockAssets.filter((a) => {
+  useEffect(() => {
+    getLiveAssets().then((data) => {
+      if (data) setAssets(data);
+    }).catch(() => {});
+  }, []);
+
+  const filteredAssets = assets.filter((a) => {
     const matchesSearch = 
       a.filename.toLowerCase().includes(searchQuery.toLowerCase()) ||
       a.title.toLowerCase().includes(searchQuery.toLowerCase());

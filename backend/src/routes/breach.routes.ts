@@ -1,11 +1,9 @@
 import { Router } from "express";
 import { BreachController } from "../controllers/breach.controller";
-import { authenticateJwt } from "../middleware/auth.middleware";
 
 const router = Router();
 
-router.use(authenticateJwt);
-
+router.post("/report", BreachController.create);
 router.post("/", BreachController.create);
 router.get("/", BreachController.getAll);
 

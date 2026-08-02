@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { ShieldCheck, Mail, Lock, ArrowRight, Sparkles } from 'lucide-react';
+import { ShieldCheck, Mail, Lock, ArrowRight } from 'lucide-react';
 import { loginUser } from '../../lib/api';
 
 export default function LoginPage() {
@@ -26,23 +26,10 @@ export default function LoginPage() {
       }
       router.push('/dashboard');
     } catch (err: any) {
-      if (typeof window !== 'undefined') {
-        localStorage.setItem('isLoggedIn', 'true');
-      }
-      router.push('/dashboard');
+      setErrorMsg(err.response?.data?.message || err.message || 'Login failed. Please check your credentials.');
     } finally {
       setLoading(false);
     }
-  };
-
-  const handleQuickDemoLogin = () => {
-    setLoading(true);
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('isLoggedIn', 'true');
-    }
-    setTimeout(() => {
-      router.push('/dashboard');
-    }, 300);
   };
 
   return (
@@ -77,22 +64,6 @@ export default function LoginPage() {
             {errorMsg}
           </div>
         )}
-
-        {/* Quick Demo Sign In Button */}
-        <button
-          onClick={handleQuickDemoLogin}
-          className="w-full bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 font-extrabold py-3.5 rounded-xl text-xs flex items-center justify-center gap-2 shadow-lg shadow-orange-500/20 transition-all transform hover:scale-[1.02] cursor-pointer"
-        >
-          <Sparkles className="w-4 h-4 fill-slate-950" />
-          <span>Quick Demo Login to Dashboard</span>
-          <ArrowRight className="w-4 h-4" />
-        </button>
-
-        <div className="flex items-center gap-3 text-slate-600 text-xs my-2">
-          <div className="flex-1 h-px bg-white/10"></div>
-          <span>or sign in with credentials</span>
-          <div className="flex-1 h-px bg-white/10"></div>
-        </div>
 
         {/* Credentials Form */}
         <form onSubmit={handleLogin} className="space-y-4">
